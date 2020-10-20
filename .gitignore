@@ -6,6 +6,7 @@ __pycache__/
 # C extensions
 *.so
 
+<<<<<<< HEAD
 # Distribution / packaging
 .Python
 build/
@@ -127,3 +128,18 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+=======
+# Pyenv files
+.python-version
+.DS_Store
+
+# Integration specific
+app/*.sql
+app/app.log
+todo.txt
+database.sql
+app.log
+app/config.conf
+codeship.aes
+env
+>>>>>>> master

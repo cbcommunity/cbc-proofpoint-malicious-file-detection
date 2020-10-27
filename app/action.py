@@ -50,13 +50,16 @@ def main():
     # Check to see if the process is still running
     lr_command = cb.send_command('process list', wait=True)
 
+    found = False
     for process in lr_command['processes']:
         if str(process['pid']) == pid:
             log.debug('[Main] Process is running, killing process')
 
+            found = True
             # Send kill command
             lr_command = cb.send_command('kill', argument=pid, wait=True)
 
+    if found is False:
         log.debug('[Main] Process {0} was not running on device {1}'.format(pid, device_id))
 
     # Send kill command

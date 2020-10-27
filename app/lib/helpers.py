@@ -54,9 +54,6 @@ class CarbonBlackCloud:
             self.session_id = None
             self.supported_commands = None
 
-            # !!! do i need all of these?
-            self.time_bounds = None
-
         except Exception as err:
             self.log.exception(err)
 
@@ -94,29 +91,6 @@ class CarbonBlackCloud:
             data = r.json()
             
             return data['results']
-
-    def get_device(self, device_id):
-        '''
-            Get a specific device's details.
-
-            Inputs
-                device_id (int):    The ID of the device
-
-            Raises
-                TypeError: When device_id is not an integer
-
-            Output
-                An object of the device
-        '''
-
-        if isinstance(device_id, int) is False:
-            raise TypeError('Expected device_id input type is string.')
-
-        try:
-            return self.cb.select(Device, device_id)
-
-        except Exception as err:
-            self.log.exception(err)
 
     def isolate_device(self, device_id):
         '''
@@ -1055,10 +1029,12 @@ class Database:
     def add_record(self, device_id, process_guid, sha256):
         '''
             Adds a file to the database
+            
             Inputs
-                md5 (str):      MD5 hash to add to the row
-                sha256 (str):   SHA256 hash to add to the row
-                status (str):   Status from Zscaler report
+                device_id (str):
+                process_guid (str):
+                sha256 (str):
+                
             Raises
                 Exception if not connection exists
                 TypeError if md5 is not a string
@@ -1066,6 +1042,7 @@ class Database:
                 TypeError if sha256 is not a string
                 ValueError if sha256 is not 64 characters long
                 TypeError if status is not a string
+                
             Output
                 row_id (int):   Returns the row ID of the new entry
         '''
@@ -1149,7 +1126,9 @@ def str2bool(item):
 
 
 def clean_url(url):
-    url = 'https://' + url if url[:4] != 'https://' else url
+    # if missing protocol, add it
+    url = 'https://' + url if url[:8] != 'https://' else url
+    # if it has a / at the end, remove it
     url = url[0:-1] if url[-1] == '/' else url
     return url
 

@@ -1,5 +1,5 @@
 # cbc-proofpoint-malicous-file-detection
-This is an integration with Proofpoint's TRAP product and VMware Carbon Black Cloud.
+This is an integration with Proofpoint's TAP product and VMware Carbon Black Cloud.
 
 Latest Version: 0.1
 Release Date: TBD
@@ -7,7 +7,7 @@ Release Date: TBD
 
 ## Overview
 
-This is an integration between **Proofpoint TRAP** and **VMware Carbon Black Cloud** (CBC) and **CBC Enterprise EDR**.  A feature of Proofpoint is that it can scan for malicious attachments. An option is to allow the attachment during detonation and if found to be malicious, remove the email from the inbox. What if the attachment is download prior to the removal of the email from the inbox?
+This is an integration between **Proofpoint TAP** and **VMware Carbon Black Cloud** (CBC) and **CBC Enterprise EDR**.  A feature of Proofpoint is that it can scan for malicious attachments. An option is to allow the attachment during detonation and if found to be malicious, remove the email from the inbox. What if the attachment is download prior to the removal of the email from the inbox?
 
 This integration will pull from Proofpoint all email deliveries from *x* minutes ago (configurable, allows time for detonation, default 30). For each attachment, search CBC for any processes with attachment's SHA256 for the last *y* timeframe (up to 2 weeks). The process GUID's are stored in a local database to prevent duplication in searches and minimize API queries. Once the processes have been identified, the script will take action.
 
@@ -21,13 +21,13 @@ Action options consist of:
 ## Requirements
     - Python 3.x with sqlite3
     - VMware Carbon Black Cloud Endpoint Standard or Enterprise EDR
-    - Proofpoint TRAP
+    - Proofpoint TAP
 
 ## License
-Use of the Carbon Black API is governed by the license found in [!!! LICENSE]().
+Use of the Carbon Black API is governed by the license found in the [LICENSE](https://github.com/cbcommunity/cbc-proofpoint-malicous-file-detection/blob/main/LICENSE) file.
 
 ## Support
-What is the support policy?
+This integration is an open sourced project. Please submit a Pull Request for any changes.
 
 ----
 
@@ -131,18 +131,35 @@ The script has the following CLI options:
 
     optional arguments:
       -h, --help            show this help message and exit
-      --last_pull LAST_PULL
+      --last-pull LAST_PULL
                             Set the last pull time in ISO8601 format
-      --now                 Output the current time is ISO8601 format
+      --start-time START_TIME
+                            Set the start time in ISO8601 format
+      --end-time END_TIME   Set the end time in ISO8601 format
+      --now                 Output the current GMT time in ISO8601 format. Does not pull any data.
 
 The `--last_pull` option overwrites the `last_pull` value stored in the database and will pull Cloud EDR processes since that time.
+
+To manually specify a timefram (min 30 seconds, max 1 hour) use the `--start-time` and `--end-time` arguments.
 
 ### Examples
 
 Typical usage:
 
     python app.py
-    
-Specify Cloud EDR start date:
+
+Specify start date:
 
     python app.py --last_pull 2020-01-01T12:34:56Z
+
+## Docker
+
+A Dockerfile is included. First build the image using the following command:
+
+    docker build -t cbc-proofpoint .
+
+Make sure your [config.conf](https://github.com/cbcommunity/cbc-proofpoint-malicous-file-detection/blob/main/app/config.conf) file is populated with the correct values.
+
+Run the script with the following command:
+
+    docker run --rm -it -v $PWD/app:/app --name=cbc-proofpoint cbc-proofpoint

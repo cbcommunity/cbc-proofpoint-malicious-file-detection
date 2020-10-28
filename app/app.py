@@ -11,7 +11,7 @@ import json
 from datetime import datetime, timedelta
 
 # Import helpers
-from lib.helpers import CarbonBlackCloud, Proofpoint, Database, convert_time, str2bool
+from lib.helpers import *
 
 # Globals
 config = None
@@ -37,6 +37,7 @@ def init():
     # Get setting from config.ini
     config = configparser.ConfigParser()
     config.read('config.conf')
+    config = config2dict(config)
 
     # Configure logging
     log.basicConfig(filename=config['logging']['filename'], format='[%(asctime)s] <pid:%(process)d> %(message)s',
@@ -62,10 +63,8 @@ def init():
     if args.last_pull:
         db.last_pull(args.last_pull)
 
-
-    print(args.end_time)
-    config['Proofpoint']['start_time'] = args.start_time if args.start_time else None
-    config['Proofpoint']['end_time'] = args.end_time if args.end_time else None
+    config['Proofpoint']['start_time'] = args.start_time
+    config['Proofpoint']['end_time'] = args.end_time
 
     # Init CarbonBlackCloud
     cb = CarbonBlackCloud(config, log)
@@ -305,7 +304,7 @@ def main():
 
                     # Take action on the processes
                     take_action(email, sha256, cb_processes['results'])
-                    
+
                 else:
                     log.info('[APP.PY] Hash was already processed')
 

@@ -139,7 +139,7 @@ class CarbonBlackCloud:
         data = r.json()
 
         return data
-        
+
     def isolate_device(self, device_id):
         '''
             Isolate a device.
@@ -1171,6 +1171,15 @@ def convert_time(timestamp):
 
 def str2bool(item):
     return item.lower() in ['true', '1']
+
+
+def config2dict(config):
+    '''
+        This method converts a configparser variable to a dict to
+            enable addition of new values.
+        Source: https://stackoverflow.com/a/57024021/1339829
+    '''
+    return { i: { i[0]: i[1] for i in config.items(i) } for i in config.sections() }
 
 
 def clean_url(url):

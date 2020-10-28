@@ -60,38 +60,86 @@ class CarbonBlackCloud:
     #
     # CBC Platform
     #
+    #
+    # CBC Platform
+    #
     def get_processes(self, sha256, window):
+        '''
+            The Get Processes API is asyncronous. We first make the request for the search,
+                then use the `job_id` to get the results. Pagination may occur.
+        '''
         # Define the request basics
         url = '/'.join([self.url, 'api/investigate/v2/orgs', self.org_key, 'processes/search_jobs'])
         headers = self.headers
         headers['X-Auth-Token'] = '{0}/{1}'.format(self.cust_api_key, self.cust_api_id)
         body = {
             'query': 'process_hash:{0}'.format(sha256),
+            'rows': 5000,
             'time_range': {
                 'window': '-{0}'.format(window)
             }
         }
-    
+
         # Request the data from the endpoint
         r = requests.post(url, headers=headers, data=json.dumps(body))
-        
+
         # If the request was successful
         if r.status_code == 200:
             # Get the job_id
             job_id = r.json()['job_id']
 
-            sleep(5)
-            
-            url = '/'.join([url, job_id, 'results'])
-            params = {
-                'start': 0,
-                'rows': 500
-            }
-            r = requests.get(url, headers=headers, params=params)
-            data = r.json()
-            
-            return data['results']
+            # Prep recursion
+            start = 0
+            rows = 500
+            page = 0
+            total = rows
+            processes = None
 
+            while start < total:
+                process_results = self.get_process_results(job_id, start, rows)
+
+                # Make sure the search has completed before moving on
+                tries = 0
+                while process_results['contacted'] != process_results['completed']:
+                    if tries > 5:
+                        self.log.error('[%s] !!! Tried {0} times to get {1}. Giving up.'.format(tries, job_id), self.class_name)
+                        raise RuntimeError('[%s] !!! Tried {0} times to get {1}. Giving up.'.format(tries, job_id), self.class_name)
+                        return None
+                    tries += 1
+
+                    # Slowly increase the wait time
+                    sleep(tries)
+
+                    process_results = self.get_process_results(job_id, start, rows)
+
+                if processes is None:
+                    processes = process_results
+                else:
+                    processes['results'] += process_results['results']
+
+                total = process_results['num_available']
+                start = start + rows
+                page += 1
+
+            processes['pages'] = page
+
+            return processes
+
+    def get_process_results(self, job_id, start, rows):
+        # Define the request basics
+        url = '/'.join([self.url, 'api/investigate/v2/orgs', self.org_key, 'processes/search_jobs', job_id, 'results'])
+        headers = self.headers
+        headers['X-Auth-Token'] = '{0}/{1}'.format(self.cust_api_key, self.cust_api_id)
+
+        params = {
+            'start': start,
+            'rows': rows
+        }
+        r = requests.get(url, headers=headers, params=params)
+        data = r.json()
+
+        return data
+        
     def isolate_device(self, device_id):
         '''
             Isolate a device.
@@ -120,10 +168,10 @@ class CarbonBlackCloud:
                     'toggle': 'ON'
                 }
             }
-        
+
             # Request the data from the endpoint
             r = requests.post(url, headers=headers, data=json.dumps(body))
-            
+
             # If the request was successful
             if r.status_code == 200:
 
@@ -173,10 +221,10 @@ class CarbonBlackCloud:
                 if r.status_code == 204:
                     self.log.info('[%s] Moved device with id {0} to policy "{1}".'.format(device_id, policy_name), self.class_name)
                     return True
-                
+
                 else:
                     self.log.exception('[%s] update_policy(): Error: {0}'.format(r.status_code), self.class_name)
-            
+
             self.log.info('[%s] No Policy with name "{0}" found.'.format(policy_name), self.class_name)
             return None
 
@@ -191,17 +239,17 @@ class CarbonBlackCloud:
         headers['X-Auth-Token'] = '{0}/{1}'.format(self.api_key, self.api_id)
 
         r = requests.get(url, headers=headers)
-        
+
         if r.status_code == 200:
             data = r.json()
             policies = data['results']
-            
+
             for policy in policies:
                 if policy['name'] == policy_name:
                     self.log.info('[%s] Found policy "{0}" with id "{1}".'.format(policy_name, policy['id']), self.class_name)
-    
+
                     return int(policy['id'])
-    
+
             self.log.info('[%s] No Policy with name "{0}" found.'.format(policy_name), self.class_name)
             return None
 
@@ -301,18 +349,18 @@ class CarbonBlackCloud:
                 # This is used for deduplication when IOCs are added
                 if self.iocs is None:
                     self.iocs = []
-                    
+
                 for report in feed['reports']:
                     for ioc in report['iocs_v2']:
                         for value in ioc['values']:
                             self.iocs.append(value)
-    
+
                 self.log.info('[%s] Pulled feed "{}"'.format(feed['feedinfo']['name']), self.class_name)
                 return feed
 
             except Exception as err:
                 self.log.exception(err)
-            
+
         except Exception as err:
             self.log.exception(err)
 
@@ -334,7 +382,7 @@ class CarbonBlackCloud:
                 An object of the newly created feed
         '''
         self.log.info('[%s] Creating feed "{}"'.format(name), self.class_name)
-        
+
         if isinstance(name, str) is False:
             raise TypeError('Expected name input type is string.')
         if isinstance(url, str) is False:
@@ -366,7 +414,7 @@ class CarbonBlackCloud:
             if r.status_code == 200:
                 new_feed = r.json()
                 feed['feedinfo']['id'] = new_feed['id']
-                
+
 
                 self.log.info('[%s] Created feed "{0}" with 0 indicators'.format(name), self.class_name)
             else:
@@ -392,7 +440,7 @@ class CarbonBlackCloud:
         headers = self.headers
         headers['X-Auth-Token'] = '{0}/{1}'.format(self.cust_api_key, self.cust_api_id)
         body = { "reports": feed['reports'] }
-        
+
 
         r = requests.post(url, headers=headers, json=body)
         print(r.status_code)
@@ -780,9 +828,9 @@ class Proofpoint:
 
         if r.status_code == 200:
             data = json.loads(r.text)
-            
+
             bad_emails = []
-    
+
             for message in data['messagesDelivered']:
                 for info in message['threatsInfoMap']:
                     if info['threatType'] == 'attachment' and info['classification'] == 'malware':
@@ -790,10 +838,10 @@ class Proofpoint:
                             # !!! for testing, use the McAfee client
                             if part['disposition'] == 'attached':
                                 part['sha256'] = self.config['debug']['sample']
-    
+
                                 bad_emails.append(message)
                                 continue
-                        
+
             self.log.info('[%s] Found {0} malicious emails'.format(len(bad_emails)), self.class_name)
             return bad_emails
         else:
@@ -848,7 +896,7 @@ class Database:
                 cursor.execute(sql[1])
                 cursor.execute(sql[2])
                 rows = cursor.fetchall()
-                
+
                 if len(rows) == 0:
                     last_pull = datetime.now() - timedelta(minutes=int(self.config['Proofpoint']['delta']))
                     last_pull = datetime.strftime(last_pull, '%Y-%m-%dT%H:%M:%SZ')
@@ -856,7 +904,7 @@ class Database:
                     cursor.execute(sql, (last_pull,))
                     self.conn.commit()
                     self.log.info('[%s] Created tables and added current timestamp as last pull time', self.class_name)
-                    
+
             except Exception as err:
                 self.log.exception(err)
 
@@ -1029,12 +1077,12 @@ class Database:
     def add_record(self, device_id, process_guid, sha256):
         '''
             Adds a file to the database
-            
+
             Inputs
                 device_id (str):
                 process_guid (str):
                 sha256 (str):
-                
+
             Raises
                 Exception if not connection exists
                 TypeError if md5 is not a string
@@ -1042,7 +1090,7 @@ class Database:
                 TypeError if sha256 is not a string
                 ValueError if sha256 is not 64 characters long
                 TypeError if status is not a string
-                
+
             Output
                 row_id (int):   Returns the row ID of the new entry
         '''

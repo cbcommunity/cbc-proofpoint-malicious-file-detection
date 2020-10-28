@@ -232,12 +232,12 @@ def action_script(device_id, pid=None, file_path=None):
                 arg_tmp = []
             # Add the arg key
             args.append(arg)
-        
+
         # Otherwise it is (or is a part of) an arg value
         else:
             # Add the value to the cache of values
             arg_tmp.append(arg)
-    
+
     # Add any remaining arg values
     args.append(' '.join(arg_tmp))
 
@@ -298,9 +298,14 @@ def main():
                 log.info('[APP.PY] Found email with malicous hash of {0}'.format(sha256))
 
                 if sha256 not in hash_tracker:
-                    hash_tracker.append(sha256)
+                    hash_tracker += [sha256]
                     cb_processes = cb.get_processes(sha256, config['CarbonBlack']['window'])
-                    take_action(email, sha256, cb_processes)
+
+                    log.info('[APP.PY] Found {0} processes with malicous hash of {1}'.format(len(cb_processes['results']), sha256))
+
+                    # Take action on the processes
+                    take_action(email, sha256, cb_processes['results'])
+                    
                 else:
                     log.info('[APP.PY] Hash was already processed')
 

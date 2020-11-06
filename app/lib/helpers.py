@@ -60,9 +60,6 @@ class CarbonBlackCloud:
     #
     # CBC Platform
     #
-    #
-    # CBC Platform
-    #
     def get_processes(self, sha256, window):
         '''
             The Get Processes API is asyncronous. We first make the request for the search,
@@ -104,7 +101,7 @@ class CarbonBlackCloud:
                     if tries > 5:
                         self.log.error('[%s] !!! Tried {0} times to get {1}. Giving up.'.format(tries, job_id), self.class_name)
                         raise RuntimeError('[%s] !!! Tried {0} times to get {1}. Giving up.'.format(tries, job_id), self.class_name)
-                        return None
+
                     tries += 1
 
                     # Slowly increase the wait time
@@ -126,19 +123,56 @@ class CarbonBlackCloud:
             return processes
 
     def get_process_results(self, job_id, start, rows):
+        '''
+        '''
+        self.log.info('[%s] Getting process results for job {0} starting from {1} with {2} rows.'.format(job_id, start, rows), self.class_name)
+
         # Define the request basics
         url = '/'.join([self.url, 'api/investigate/v2/orgs', self.org_key, 'processes/search_jobs', job_id, 'results'])
         headers = self.headers
         headers['X-Auth-Token'] = '{0}/{1}'.format(self.cust_api_key, self.cust_api_id)
-
         params = {
             'start': start,
             'rows': rows
         }
-        r = requests.get(url, headers=headers, params=params)
-        data = r.json()
 
-        return data
+        r = requests.get(url, headers=headers, params=params)
+
+        if r.status_code == 200:
+            data = r.json()
+
+            return data
+
+        self.log.error('[%s] Error {0}: {1}'.format(r.status_code, r.text), self.class_name)
+        raise Exception('Error {0}: {1}'.format(r.status_code, r.text))
+
+    def get_device(self, device_id):
+        '''
+            !!! comment here
+        '''
+        self.log.info('[%s] Getting device information: {0}.'.format(device_id), self.class_name)
+
+        # Define the request basics
+        url = '/'.join([self.url, 'appservices/v6/orgs', self.org_key, 'devices/_search'])
+        headers = self.headers
+        headers['X-Auth-Token'] = '{0}/{1}'.format(self.cust_api_key, self.cust_api_id)
+        body = {
+            'criteria': {
+                'id': ['{0}'.format(device_id)]
+            }
+        }
+
+        # Request the data from the endpoint
+        r = requests.post(url, headers=headers, data=json.dumps(body))
+
+        # If the request was successful
+        if r.status_code == 200:
+            self.log.info('[%s] Pulled device information: {0}.'.format(device_id), self.class_name)
+            data = r.json()
+            return data
+        
+        self.log.error('[%s] Error {0}: {1}'.format(r.status_code, r.text), self.class_name)
+        raise Exception('Error {0}: {1}'.format(r.status_code, r.text))
 
     def isolate_device(self, device_id):
         '''
@@ -174,8 +208,11 @@ class CarbonBlackCloud:
 
             # If the request was successful
             if r.status_code == 200:
-
                 return True
+
+            else:
+                self.log.error('[%s] Error {0}: {1}'.format(r.status_code, r.text), self.class_name)
+                raise Exception('Error {0}: {1}'.format(r.status_code, r.text))
 
         except Exception as err:
             self.log.exception(err)
@@ -600,7 +637,7 @@ class CarbonBlackCloud:
 
         try:
             if self.session_id is None:
-                self.log.info('[%s] Cannot get session status. No session established'.format(self.session_id),
+                self.log.info('[%s] Cannot get session status. No session established for session ID {0}'.format(self.session_id),
                               self.class_name)
                 raise Exception('No session established')
 
@@ -717,7 +754,7 @@ class CarbonBlackCloud:
 
         try:
             if self.session_id is None:
-                self.log.info('[%s] Cannot get session status. No session established'.format(self.session_id),
+                self.log.info('[%s] Cannot get session status. No session established for session with ID {0}'.format(self.session_id),
                               self.class_name)
                 raise Exception('No session established')
 
@@ -1005,7 +1042,7 @@ class Database:
                 cursor.execute(sql, timestamp)
                 self.conn.commit()
 
-                self.log.info('[%s] Updated last pull'.format(timestamp), self.class_name)
+                self.log.info('[%s] Updated last pull to {0}'.format(timestamp), self.class_name)
                 return True
 
         except Exception as err:

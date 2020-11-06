@@ -157,21 +157,20 @@ Run the script with the following command:
 
 Want to load a dev environment locally to test and tweak the code? Use the following command in the root of the repo folder to launch a dev environment on port 3000 of your local machine.
 
-```
-# Linux, macOS, or PowerShell
-docker run -it --init \
-	-n cbc-proofpoint \
-	-p 3000:3000 \
-	-v "$PWD:/home/project:cached" \
-	theiaide/theia-python:next
+    # Linux, macOS, or PowerShell
+    docker run -it --init \
+        -n cbc-proofpoint \
+        -p 3000:3000 \
+        -v "$PWD:/home/project:cached" \
+        theiaide/theia-python:next
 
-# Windows (cmd.exe)
-docker run -it --init \
-	-n cbc-proofpoint \
-	-p 3000:3000 \
-	-v "%cd%:/home/project:cached" \
-	theiaide/theia-python:next
-```
+
+    # Windows (cmd.exe)
+    docker run -it --init \
+        -n cbc-proofpoint \
+        -p 3000:3000 \
+        -v "%cd%:/home/project:cached" \
+        theiaide/theia-python:next
 
 Once the container is running, open a browser and go to http://localhost:3000. After the console loads, run the following command in the IDE's terminal:
 

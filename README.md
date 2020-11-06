@@ -1,22 +1,24 @@
-# cbc-proofpoint-malicous-file-detection
-This is an integration with Proofpoint's TAP product and VMware Carbon Black Cloud.
+# Proofpoint TAP Connector for VMware Carbon Black Cloud
 
-Latest Version: 0.1
-Release Date: TBD
+This is an integration between Proofpoint's TAP product and VMware Carbon Black Cloud (CBC).
+
+Latest Version: v0.9
+Release Date: November 2020
 
 
 ## Overview
+> Proofpoint TAP shares threat information with VMware Carbon Black Cloud. This provides more enhanced security for you to protect your people, both through email and the device itself. When TAP detects that a malicious file has been delivered via email, Carbon Black Cloud will query for malicious content across all endpoints ..(add more specifics here)… If the malicious file is found on any of the devices, then the following actions can be taken.
 
-This is an integration between **Proofpoint TAP** and **VMware Carbon Black Cloud** (CBC) and **CBC Enterprise EDR**.  A feature of Proofpoint is that it can scan for malicious attachments. An option is to allow the attachment during detonation and if found to be malicious, remove the email from the inbox. What if the attachment is download prior to the removal of the email from the inbox?
+This is an integration between **Proofpoint TAP** and **VMware Carbon Black Cloud** (CBC).  Depending on the configuration *(? policies?)* of Proofpoint TAP, users are able to access attachments while they're being analyzed by Proofpoint. If the attachment is found to be malicious, Proofpoint TAP can remove the email from all corporate inboxes, however, if the attachment was downloaded prior to the email being deleted, the malicious file could still be present in the environment on end-user machines.
 
-This integration will pull from Proofpoint all email deliveries from *x* minutes ago (configurable, allows time for detonation, default 30). For each attachment, search CBC for any processes with attachment's SHA256 for the last *y* timeframe (up to 2 weeks). The process GUID's are stored in a local database to prevent duplication in searches and minimize API queries. Once the processes have been identified, the script will take action.
+This integration will pull all email deliveries from *x* minutes ago (configurable, allows time for detonation, default 30) from Proofpoint TAP. For each attachment collected from Proofpoint, Carbon Black Cloud will search for any processes that match the malicious attachments' SHA256 hash value for a preset, custom time frame (up to 2 weeks). The process GUID's are stored in a local database to prevent duplication in searches and minimize API queries. Once the processes have been identified, the script will take action.
 
 Action options consist of:
    - Adding to a CBC Enterprise EDR Watchlist Feed
    - Passing the SHA256, process information, and email information to a webhook
    - Running a script (kills process/deletes file with CBC Live Response by default)
    - Isolating the endpoint
-   - Moving the endpoint into a policy
+   - Moving the endpoint into a different or updated policy
 
 ## Requirements
     - Python 3.x with sqlite3
@@ -78,19 +80,6 @@ The Organization Key can be found in the upper-left of the **Settings** > **API 
 | `lr_api_key`        | LiveResponse API Secret Key        |
 | `window`       | Window of time to search for SHA256 processes. Maximum 2 weeks |
 
-API endpoints used:
-
-- api/investigate/v2/orgs/ORG_KEY/processes/search_jobs'
-- appservices/v6/orgs', self.org_key, 'device_actions
-- integrationServices/v3/policy
-- threathunter/feedmgr/v2/orgs', self.org_key, 'feeds
-- threathunter/feedmgr/v2/orgs', self.org_key, 'feeds/{FEED_ID}
-- threathunter/feedmgr/v2/orgs', self.org_key, 'feeds/{FEED_ID}/reports
-- integrationServices/v3/cblr/session/{1}
-- integrationServices/v3/cblr/session/{1}/command
-- integrationServices/v3/cblr/session/{1}/command/{2}
-- integrationServices/v3/cblr/session
-
 ----
 
 ### Proofpoint Configuration
@@ -103,11 +92,11 @@ The API key can be found in **!!! ENTER LOCATION**
 | `api_key`       | API Key                        |
 | `principal`     | Login Username                 |
 | `secret`        | Login Password                 |
-| `delta`         | Durration of time to search for delivered messages. Max 1 hour |
+| `delta`         | Duration of time to search for delivered messages. Max 1 hour |
 
 ----
 
-Python 3.x ships by default with sqlite. If for some reason you don't have sqlite, you will need to install it (`pip install sqlite3`. This database is used to keep track of and de-dupe lookups on the same process.
+Python 3.x ships by default with sqlite. If for some reason you don't have sqlite, you will need to install it (`pip install sqlite3`). This database is used to keep track of and de-dupe lookups on the same process.
 
 | **sqlite3**         | **Configure sqlite3**              |
 |:--------------------|:-----------------------------------|
@@ -138,9 +127,9 @@ The script has the following CLI options:
       --end-time END_TIME   Set the end time in ISO8601 format
       --now                 Output the current GMT time in ISO8601 format. Does not pull any data.
 
-The `--last_pull` option overwrites the `last_pull` value stored in the database and will pull Cloud EDR processes since that time.
+The `--last_pull` option overwrites the `last_pull` value stored in the database and will pull CBC Endpoint Standard or CBC Enterprise EDR processes since that time.
 
-To manually specify a timefram (min 30 seconds, max 1 hour) use the `--start-time` and `--end-time` arguments.
+To manually specify a timeframe (min 30 seconds, max 1 hour) use the `--start-time` and `--end-time` arguments.
 
 ### Examples
 
@@ -154,12 +143,32 @@ Specify start date:
 
 ## Docker
 
-A Dockerfile is included. First build the image using the following command:
+A Dockerfile is included. First build the image using the following command from the project's root folder:
 
     docker build -t cbc-proofpoint .
 
-Make sure your [config.conf](https://github.com/cbcommunity/cbc-proofpoint-malicous-file-detection/blob/main/app/config.conf) file is populated with the correct values.
+Make sure your [app/config.conf](https://github.com/cbcommunity/cbc-proofpoint-malicous-file-detection/blob/main/app/config.conf) file is populated with the correct values.
 
 Run the script with the following command:
 
     docker run --rm -it -v $PWD/app:/app --name=cbc-proofpoint cbc-proofpoint
+   
+## Development
+
+Want to load a dev environment locally to test and tweak the code? Use the following command in the root of the repo folder to launch a dev environment on port 3000 of your local machine.
+
+```
+# Linux, macOS, or PowerShell
+docker run -it --init \
+	--name cbc-proofpoint \
+	-p 3000:3000 \
+	-v "$(pwd):/home/project:cached" \
+	theiaide/theia-python:next
+
+# Windows (cmd.exe)
+docker run -it --init \
+	--name cbc-proofpoint \
+	-p 3000:3000 \
+	-v "%cd%:/home/project:cached" \
+	theiaide/theia-python:next
+```

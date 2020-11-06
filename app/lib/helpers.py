@@ -835,9 +835,10 @@ class Proofpoint:
                 for info in message['threatsInfoMap']:
                     if info['threatType'] == 'attachment' and info['classification'] == 'malware':
                         for part in message['messageParts']:
-                            # !!! for testing, use the McAfee client
                             if part['disposition'] == 'attached':
-                                part['sha256'] = self.config['debug']['sample']
+                                # !!! for testing / debug
+                                if self.config['debug']['sample']:
+                                    part['sha256'] = self.config['debug']['sample']
 
                                 bad_emails.append(message)
                                 continue
@@ -1183,7 +1184,7 @@ def config2dict(config):
 
 
 def clean_url(url):
-    # if missing protocol, add it
+    # if missing protocol, add https
     url = 'https://' + url if url[:8] != 'https://' else url
     # if it has a / at the end, remove it
     url = url[0:-1] if url[-1] == '/' else url

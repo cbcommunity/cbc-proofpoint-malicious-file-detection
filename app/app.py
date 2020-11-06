@@ -46,9 +46,9 @@ def init():
 
     # Configure CLI input arguments
     parser = argparse.ArgumentParser(description='Fetch events for messages delivered in the specified time period which contained a known threat')
-    parser.add_argument('--last-pull', help='Set the last pull time in ISO8601 format')
-    parser.add_argument('--start-time', default=None, help='Set the start time in ISO8601 format')
-    parser.add_argument('--end-time', default=None, help='Set the end time in ISO8601 format')
+    parser.add_argument('--last-pull', default='None', help='Set the last pull time in ISO8601 format')
+    parser.add_argument('--start-time', default='None', help='Set the start time in ISO8601 format')
+    parser.add_argument('--end-time', default='None', help='Set the end time in ISO8601 format')
     parser.add_argument('--now', action='store_true', default=False, help='Output the current GMT time in ISO8601 format. Does not pull any data.')
     args = parser.parse_args()
 
@@ -56,11 +56,18 @@ def init():
         print('Current time GMT in ISO8601 format: {0}'.format(convert_time('now')))
         sys.exit(0)
 
+    if args.last_pull == 'None':
+        args.last_pull = None
+    if args.start_time == 'None':
+        args.start_time = None
+    if args.end_time == 'None':
+        args.end_time = None
+
     # Init database
     db = Database(config, log)
 
     # If a last_pull was provided, update the database with it
-    if args.last_pull:
+    if args.last_pull is not None:
         db.last_pull(args.last_pull)
 
     config['Proofpoint']['start_time'] = args.start_time
@@ -267,7 +274,7 @@ def main():
     interval = '{0}/{1}'.format(last_pull, end_time)
 
     # Convert interval to difference in seconds
-    search_span = datetime.strptime(end_time,'%Y-%m-%dT%H:%M:%SZ') - datetime.strptime(last_pull,'%Y-%m-%dT%H:%M:%SZ')
+    search_span = datetime.strptime(end_time, '%Y-%m-%dT%H:%M:%SZ') - datetime.strptime(last_pull, '%Y-%m-%dT%H:%M:%SZ')
     search_span = int(search_span.total_seconds())
 
     # if search_span < 30 seconds

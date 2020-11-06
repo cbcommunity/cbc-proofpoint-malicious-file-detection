@@ -26,7 +26,7 @@ def init():
     parser.add_argument("--device_id", help='Log activity to a file', required=True)
     parser.add_argument('--pid', help='Process ID to kill if running', required=True)
     parser.add_argument('--file_path', help='Process path to delete the file', default=None)
-    parser.add_argument('--close', action='store_true', help='Close the session when script completes')
+    parser.add_argument('--close', action='store_true', default=False, help='Close the session when script completes')
     args = parser.parse_args()
     log.debug('Finished cli inputs')
 
@@ -66,9 +66,9 @@ def main():
     log.debug('[Main] Deleting file from endpoint')
     lr_command = cb.send_command('delete file', argument=file_path, wait=True)
 
-    # if args.close:
-    #     cb.close_session()
-    #     log.debug('[Main] Closed session')
+    if args.close:
+        cb.close_session()
+        log.debug('[Main] Closed session')
 
 
 if __name__ == "__main__":

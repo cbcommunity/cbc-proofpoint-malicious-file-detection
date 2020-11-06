@@ -125,7 +125,11 @@ def take_action(email, sha256, cb_processes):
         # !!! need to populate threat feed description
         description = 'A description can go here.'
 
-        severity = email['malwareScore'] if email['malwareScore'] != 0 else 1
+        # Proofpoint's scoring is 0-100, CBC EEDR is 1-10
+        if email['malwareScore'] == 0:
+            severity = 1
+        else:
+            severity = round(email['malwareScore'] / 10)
 
         url = threat['threatUrl']
         tags = [threat['threatStatus'], threat['threatType'], threat['classification']]

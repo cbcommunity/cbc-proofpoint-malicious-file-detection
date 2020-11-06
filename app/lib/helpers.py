@@ -616,7 +616,7 @@ class CarbonBlackCloud:
                 return data
 
             else:
-                raise Exception(f'{r.status_code} {r.text}')
+                raise Exception('{0}: {1}'.format(r.status_code, r.text))
 
         except Exception as err:
             self.log.exception(err)
@@ -658,7 +658,7 @@ class CarbonBlackCloud:
                 return data
 
             else:
-                raise Exception(f'{r.status_code} {r.text}')
+                raise Exception('{0}: {1}'.format(r.status_code, r.text))
 
         except Exception as err:
             self.log.exception(err)
@@ -775,7 +775,7 @@ class CarbonBlackCloud:
                 return data
 
             else:
-                raise Exception(f'{r.status_code} {r.text}')
+                raise Exception('{0}: {1}'.format(r.status_code, r.text))
 
         except Exception as err:
             self.log.exception(err)
@@ -884,7 +884,7 @@ class Proofpoint:
             return bad_emails
         else:
             self.log.warning('[%s] Unable to pull delivered messages: {0} {1}'.format(r.status_code, r.text), self.class_name)
-            raise Exception(f'{r.status_code} {r.text}')
+            raise Exception('{0}: {1}'.format(r.status_code, r.text))
 
 
 class Database:
@@ -1149,7 +1149,7 @@ class Database:
 
         try:
             if self.get_record(process_guid=process_guid):
-                raise FileExistsError('Process already exists: {0}'.format(process_guid))
+                raise Exception('Process already exists: {0}'.format(process_guid))
 
             timestamp = convert_time('now')
             file_info = (timestamp, device_id, process_guid, sha256,)

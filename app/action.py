@@ -5,6 +5,8 @@ import argparse
 import configparser
 import logging as log
 
+from time import sleep
+
 from lib.helpers import CarbonBlackCloud
 
 log.basicConfig(filename='app.log', format='[%(asctime)s] <pid:%(process)d> %(message)s', level=log.DEBUG)
@@ -43,6 +45,31 @@ def main():
     pid = args.pid
     file_path = args.file_path
 
+    # Check to see if Live Response is enabled on the endpoint
+    device_info = cb.get_device(device_id)
+    device = device_info['results'][0]
+    last_contact = device['last_contact_time']
+    tries = 0
+
+    while tries < 30:
+        tries += 1
+
+        if 'LIVE_RESPONSE_ENABLED' in device['sensor_states']:
+            break
+
+        if device['last_contact_time'] != last_contact and 'LIVE_RESPONSE_ENABLED' not in device['sensor_states']:
+            log.error('[Main] Policy "{0}" ({1}) does not have Live Response enabled.'.format(device['policy_name'], device['policy_id']))
+            raise Exception('Policy "{0}" ({1}) does not have Live Response enabled.'.format(device['policy_name'], device['policy_id']))
+
+        device_info = cb.get_device(device_id)
+        device = device_info['results'][0]
+
+        log.info('Current policy "{0}" ({1}) does not have Live Response enabled. Checking for policy update in 15 seconds.'.format(device['policy_name'], device['policy_id']))
+
+        sleep(15)
+
+
+    # If LR is enabled, start LR flow
     cb.start_session(device_id, wait=True)
 
     log.debug('[Main] Connected to endpoint: {0}'.format(device_id))

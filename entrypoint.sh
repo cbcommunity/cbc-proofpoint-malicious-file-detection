@@ -20,8 +20,6 @@ if [ -z ${LAST_PULL+x} ]; then LAST_PULL="None"; fi
 if [ -z ${START_TIME+x} ]; then START_TIME="None"; fi
 if [ -z ${END_TIME+x} ]; then END_TIME="None"; fi
 
-
-
 CRON="$(($LOOP_MINUTES * 60))"
 while :
     do python app.py --last-pull $LAST_PULL --start-time $START_TIME --end-time $END_TIME >> app.log 2>&1

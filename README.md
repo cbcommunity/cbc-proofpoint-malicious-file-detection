@@ -1,15 +1,15 @@
+
 # Proofpoint TAP Connector for VMware Carbon Black Cloud
 
 This is an integration between Proofpoint's TAP product and VMware Carbon Black Cloud (CBC).
 
-Latest Version: v0.9
-Release Date: November 2020
+**Latest Version:** v0.9
+**Release Date:** November 2020
 
 
 ## Overview
-> Proofpoint TAP shares threat information with VMware Carbon Black Cloud. This provides more enhanced security for you to protect your people, both through email and the device itself. When TAP detects that a malicious file has been delivered via email, Carbon Black Cloud will query for malicious content across all endpoints ..(add more specifics here)… If the malicious file is found on any of the devices, then the following actions can be taken.
 
-This is an integration between **Proofpoint TAP** and **VMware Carbon Black Cloud** (CBC).  Depending on the configuration *(? policies?)* of Proofpoint TAP, users are able to access attachments while they're being analyzed by Proofpoint. If the attachment is found to be malicious, Proofpoint TAP can remove the email from all corporate inboxes, however, if the attachment was downloaded prior to the email being deleted, the malicious file could still be present in the environment on end-user machines.
+This is an integration between **Proofpoint TAP** and **VMware Carbon Black Cloud** (CBC).  Depending on the configuration of Proofpoint TAP, users are able to access attachments while they're being analyzed by Proofpoint. If the attachment is found to be malicious, Proofpoint TAP can remove the email from all corporate inboxes, however, if the attachment was downloaded prior to the email being deleted, the malicious file could still be present in the environment on end-user machines.
 
 This integration will pull all email deliveries from *x* minutes ago (configurable, allows time for detonation, default 30) from Proofpoint TAP. For each attachment collected from Proofpoint, Carbon Black Cloud will search for any processes that match the malicious attachments' SHA256 hash value for a preset, custom time frame (up to 2 weeks). The process GUID's are stored in a local database to prevent duplication in searches and minimize API queries. Once the processes have been identified, the script will take action.
 
@@ -153,22 +153,28 @@ Run the script with the following command:
 
     docker run --rm -it -v $PWD/app:/app --name=cbc-proofpoint cbc-proofpoint
    
-## Development
+## Development Container
 
 Want to load a dev environment locally to test and tweak the code? Use the following command in the root of the repo folder to launch a dev environment on port 3000 of your local machine.
 
 ```
 # Linux, macOS, or PowerShell
 docker run -it --init \
-	--name cbc-proofpoint \
+	-n cbc-proofpoint \
 	-p 3000:3000 \
-	-v "$(pwd):/home/project:cached" \
+	-v "$PWD:/home/project:cached" \
 	theiaide/theia-python:next
 
 # Windows (cmd.exe)
 docker run -it --init \
-	--name cbc-proofpoint \
+	-n cbc-proofpoint \
 	-p 3000:3000 \
 	-v "%cd%:/home/project:cached" \
 	theiaide/theia-python:next
 ```
+
+Once the container is running, open a browser and go to http://localhost:3000. After the console loads, run the following command in the IDE's terminal:
+
+	./dev-setup.sh
+
+This will update the instance and install the required modules. Use `python3` to execute the scripts.

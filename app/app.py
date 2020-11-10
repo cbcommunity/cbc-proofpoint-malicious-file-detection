@@ -167,16 +167,25 @@ def take_action(email, sha256, cb_processes):
 
         # Send data to webhook
         if 'webhook' in actions and actions['webhook'] is not None:
-            url = actions['webhook']
-            headers = {
-                'Content-Type': 'application/json'
-            }
-            body = {
-                'email': email,
-                'sha256': sha256,
-                'process': process
-            }
-            requests.post(url, headers=headers, json=body)
+            try:
+                url = actions['webhook']
+                headers = {
+                    'Content-Type': 'application/json'
+                }
+                body = {
+                    'email': email,
+                    'sha256': sha256,
+                    'process': process
+                }
+                r = requests.post(url, headers=headers, json=body)
+                
+                if str(r.status_code()[0]) == '2':
+                    log.info('[APP.PY] Sent data to webhook.\nRecieved {0}: {1}'.format(r.status_code, r.text))
+
+                else:
+                    log.warning('[APP.PY] {0}: {1}'.format(r.status_code, r.text))
+            except Exception as error:
+                log.error('[APP.PY] {0}'.format(error))
 
         # Run a script
         if 'script' in actions and actions['script'] is not None:

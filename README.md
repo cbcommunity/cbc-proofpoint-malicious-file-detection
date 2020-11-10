@@ -78,7 +78,7 @@ The Organization Key can be found in the upper-left of the **Settings** > **API 
 | `custom_api_key`    | Custom API Secret Key              |
 | `lr_api_id`         | LiveResponse API ID                |
 | `lr_api_key`        | LiveResponse API Secret Key        |
-| `window`       | Window of time to search for SHA256 processes. Maximum 2 weeks |
+| `window`            | Window of time to search for SHA256 processes. Maximum 2 weeks |
 
 ----
 

@@ -54,12 +54,13 @@ You will need to create 1 API Access Level and 3 API keys
 
 #### Custom Access Level Permissions
 
-|       Category       |   Permission Name   |    .Notation Name   |       Create       |        Read        |       Update       | Delete | Execute |
-|:--------------------|:-------------------|:-------------------|:------------------:|:------------------:|:------------------:|:------:|:-------:|
-| Custom Detections   | Feeds               | org.feeds           | :ballot_box_with_check: | :ballot_box_with_check: | :ballot_box_with_check: |        |         |
-| Device               | Policy assignment   | device.policy       |                    |                    | :ballot_box_with_check: |        |         |
-| Search               | Events              | org.search.events.  | :ballot_box_with_check: | :ballot_box_with_check: |                    |        |         |
-
+|    **Category**   | **Permission Name** | **.Notation Name** |        **Create**       |         **Read**        |        **Update**       | **Delete** |       **Execute**       |
+|:-----------------:|:-------------------:|:------------------:|:-----------------------:|:-----------------------:|:-----------------------:|:----------:|:-----------------------:|
+| Custom Detections | Feeds               | org.feeds          | :ballot_box_with_check: | :ballot_box_with_check: |                         |            |                         |
+| Device            | Quarantine          | device.quarantine  |                         |                         |                         |            | :ballot_box_with_check: |
+| Device            | General Information | device             |                         | :ballot_box_with_check: |                         |            |                         |
+| Device            | Policy Assignment   | device.policy      |                         |                         | :ballot_box_with_check: |            |                         |
+| Search            | Events              | org.search.events  | :ballot_box_with_check: | :ballot_box_with_check: |                         |            |                         |
 
 #### Access Levels (API key type)
 1. Custom [select your Custom Access Level]

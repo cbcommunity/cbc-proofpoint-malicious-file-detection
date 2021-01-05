@@ -70,14 +70,17 @@ def init():
     if args.last_pull is not None:
         db.last_pull(args.last_pull)
 
-    config['Proofpoint']['start_time'] = args.start_time
-    config['Proofpoint']['end_time'] = args.end_time
+    # Trim the database
+    db.trim_records('records', config['sqlite3']['deprecation'])
 
     # Init CarbonBlackCloud
     cb = CarbonBlackCloud(config, log)
 
     # Init Proofpoint
     pp = Proofpoint(config, log)
+
+    config['Proofpoint']['start_time'] = args.start_time
+    config['Proofpoint']['end_time'] = args.end_time
 
     return config, db, cb, pp
 

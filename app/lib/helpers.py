@@ -1162,6 +1162,19 @@ class Database:
         except Exception as err:
             self.log.exception(err)
 
+    def trim_records(self, table, deprecation):
+        sql_query = 'DELETE FROM ? WHERE timestamp < date("now", "? days");'
+        sql_values = (table, deprecation,)
+
+        try:
+            cur = self.conn.cursor()
+            cur.execute(sql_query, sql_values)
+            self.conn.commit()
+            return cur.lastrowid
+
+        except Exception as err:
+            self.log.exception(err)
+
 
 def convert_time(timestamp):
     '''

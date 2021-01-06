@@ -26,7 +26,7 @@ Action options consist of:
     - Proofpoint TAP
 
 ## License
-Use of the Carbon Black API is governed by the license found in the [LICENSE](https://github.com/cbcommunity/cbc-proofpoint-malicous-file-detection/blob/main/LICENSE) file.
+Use of the Carbon Black API is governed by the license found in the [LICENSE.md](https://github.com/cbcommunity/cbc-proofpoint-malicous-file-detection/blob/main/LICENSE.md) file.
 
 ## Support
 This integration is an open sourced project. Please submit a Pull Request for any changes.
@@ -65,7 +65,7 @@ You will need to create 1 API Access Level and 3 API keys
 #### Access Levels (API key type)
 1. Custom [select your Custom Access Level]
 2. API
-3. Live Response (optional, used in action.py)
+3. Live Response (optional, used in [action.py](https://github.com/cbcommunity/cbc-proofpoint-malicous-file-detection/blob/main/app/action.py))
 
 The Organization Key can be found in the upper-left of the **Settings** > **API Keys** page.
 
@@ -85,7 +85,9 @@ The Organization Key can be found in the upper-left of the **Settings** > **API 
 
 ### Proofpoint Configuration
 
-The API key can be found in **!!! ENTER LOCATION**
+The Service Credentials section allows you to define sets of credentials which are used to authenticate to Proofpoint TAP’s Application Program Interfaces ("API"). You can define as many sets of credentials as you need for different purposes.
+
+To create a service principal, navigate to the Connected Applications tab, click the Create New Credential button. You will then be prompted to define a friendly name, which should be descriptive of the purpose of the credential. After hitting Generate, a lightbox will be displayed with the service principal (username) and secret (password). It is important that you copy these credentials; they will not be redisplayed and are not retrievable after the lightbox has been dismissed.
 
 | **Proofpoint**  | **Configure Proofpoint TAP**   |
 |:----------------|:-------------------------------|
@@ -99,9 +101,10 @@ The API key can be found in **!!! ENTER LOCATION**
 
 Python 3.x ships by default with sqlite. If for some reason you don't have sqlite, you will need to install it (`pip install sqlite3`). This database is used to keep track of and de-dupe lookups on the same process.
 
-| **sqlite3**         | **Configure sqlite3**              |
-|:--------------------|:-----------------------------------|
-| `filename`          | Filename of the sqlite3 database   |
+| **sqlite3**         | **Configure sqlite3**                                |
+|:--------------------|:-----------------------------------------------------|
+| `filename`          | Filename of the sqlite3 database                     |
+| `deprecation`       | Amount of time the records will live in the database |
 
 ----
 
@@ -140,7 +143,7 @@ Typical usage:
 
 Specify start date:
 
-    python app.py --last_pull 2020-01-01T12:34:56Z
+    python app.py --last_pull 2021-01-01T12:34:56Z
 
 ## Docker
 

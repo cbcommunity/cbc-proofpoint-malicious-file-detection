@@ -34,14 +34,23 @@ def init():
 
     global config, db, cb, pp
 
+    app_path = os.path.dirname(os.path.realpath(__file__))
+    config_path = os.path.join(app_path, 'config.conf')
+    if os.path.isfile(config_path) is False:
+        log.exception('[APP.PY] Unable to find config.conf in {0}'.format(app_path))
+        raise Exception('[APP.PY] Unable to find config.conf in {0}'.format(app_path))
+
     # Get setting from config.ini
     config = configparser.ConfigParser()
     config.read('config.conf')
+    print(config['logging'])
     config = config2dict(config)
+    print(json.dumps(config, indent=4))
 
     # Configure logging
-    log.basicConfig(filename=config['logging']['filename'], format='[%(asctime)s] <pid:%(process)d> %(message)s',
-                    level=log.DEBUG)
+    log_level = log.getLevelName(config['logging']['level'])
+    log_path = os.path.join(app_path, config['logging']['filename'])
+    log.basicConfig(filename=log_path, format='[%(asctime)s] %(levelname)s <pid:%(process)d> %(message)s', level=log_level)
     log.info('\n\n[APP.PY] Sarted Proofpoint Connector for VMware Carbon Black Cloud')
 
     # Configure CLI input arguments
@@ -238,14 +247,15 @@ def action_script(device_id, pid=None, file_path=None):
     script = script.split(' ')
 
     # This is the command that is sent, with the arguments
-    cmd = [os.path.join(script_cwd, script[0])]
+    script_cmd = script[0]
+    cmd = [script_cmd, os.path.join(script_cwd, script[1])]
 
     # The command and arguments are passed as an array to the script execution where each argument is an
     #   item in the array. Some of the args could have spaces (like file_path). This section will concatenate
     #   arguments as a string and correctly organize them by items in the array
     args = []
     arg_tmp = []
-    for arg in script[1:]:
+    for arg in script[2:]:
         # If the first 2 chars are --, it is an arg key
         if arg[0:2] == '--':
             # Add any arg values and clear the cache

@@ -1163,12 +1163,13 @@ class Database:
             self.log.exception(err)
 
     def trim_records(self, table, deprecation):
-        sql_query = 'DELETE FROM ? WHERE timestamp < date("now", "? days");'
-        sql_values = (table, deprecation,)
+        sql_query = 'DELETE FROM records WHERE timestamp < date("now", "{0} days")'.format(table, deprecation)
+        # sql_values = (deprecation,)
 
         try:
             cur = self.conn.cursor()
-            cur.execute(sql_query, sql_values)
+            # cur.execute(sql_query, sql_values)
+            cur.execute(sql_query)
             self.conn.commit()
             return cur.lastrowid
 

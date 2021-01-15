@@ -3,7 +3,7 @@
 
 This is an integration between Proofpoint's TAP product and VMware Carbon Black Cloud (CBC).
 
-**Latest Version:** v0.9
+**Latest Version:** v1.0  
 **Release Date:** November 2020
 
 

@@ -1163,7 +1163,7 @@ class Database:
             self.log.exception(err)
 
     def trim_records(self, table, deprecation):
-        sql_query = 'DELETE FROM records WHERE timestamp < date("now", "{0} days")'.format(table, deprecation)
+        sql_query = 'DELETE FROM {0}} WHERE timestamp < date("now", "{1} days")'.format(table, deprecation)
         # sql_values = (deprecation,)
 
         try:

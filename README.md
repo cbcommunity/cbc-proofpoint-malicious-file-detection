@@ -47,7 +47,7 @@ Edit the `config.conf` file and update with your configurations
 
 ## Configuration
 
-All of the configurable settings for the integration can be found in [`config.conf`](cbcommunity/cbc-proofpoint-malicous-file-detection/blob/master/app/config.conf).
+All of the configurable settings for the integration can be found in [`config.conf`](https://github.com/cbcommunity/cbc-proofpoint-malicous-file-detection/blob/main/app/config.conf).
 
 ### Carbon Black Configuration
 You will need to create 1 API Access Level and 3 API keys

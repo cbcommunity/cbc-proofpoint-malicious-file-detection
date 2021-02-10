@@ -9,7 +9,7 @@ This is an integration between Proofpoint's TAP product and VMware Carbon Black 
 
 ## Overview
 
-This is an integration between **Proofpoint TAP** and **VMware Carbon Black Cloud** (CBC).  Depending on the configuration of Proofpoint TAP, users are able to access attachments while they're being analyzed by Proofpoint. If the attachment is found to be malicious, Proofpoint TAP can remove the email from all corporate inboxes, however, if the attachment was downloaded prior to the email being deleted, the malicious file could still be present in the environment on end-user machines.
+This is an integration between **Proofpoint TAP** and **VMware Carbon Black Cloud** (CBC).  Depending on the configuration of Proofpoint TAP, users are able to access attachments while they're being analyzed by Proofpoint. If the attachment is found to be malicious, Proofpoint TRAP can remove the email from all corporate inboxes, however, if the attachment was downloaded prior to the email being deleted, the malicious file could still be present in the environment on end-user machines.
 
 This integration will pull all email deliveries from *x* minutes ago (configurable, allows time for detonation, default 30) from Proofpoint TAP. For each attachment collected from Proofpoint, Carbon Black Cloud will search for any processes that match the malicious attachments' SHA256 hash value for a preset, custom time frame (up to 2 weeks). The process GUID's are stored in a local database to prevent duplication in searches and minimize API queries. Once the processes have been identified, the script will take action.
 

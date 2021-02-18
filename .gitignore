@@ -11,13 +11,10 @@ __pycache__/
 .DS_Store
 
 # Integration specific
+app/config.conf
 app/*.sql
 app/app.log
 app/find_data.py
 todo.txt
-database.sql
-app.log
-app/config.conf
 codeship.aes
 env
->>>>>>> master

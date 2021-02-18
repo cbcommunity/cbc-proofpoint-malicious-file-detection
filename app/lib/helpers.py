@@ -480,8 +480,6 @@ class CarbonBlackCloud:
 
 
         r = requests.post(url, headers=headers, json=body)
-        print(r.status_code)
-        print(r.text)
         data = r.json()
         return data
 
@@ -1163,7 +1161,7 @@ class Database:
             self.log.exception(err)
 
     def trim_records(self, table, deprecation):
-        sql_query = 'DELETE FROM {0}} WHERE timestamp < date("now", "{1} days")'.format(table, deprecation)
+        sql_query = 'DELETE FROM {0} WHERE timestamp < date("now", "{1} days")'.format(table, deprecation)
         # sql_values = (deprecation,)
 
         try:

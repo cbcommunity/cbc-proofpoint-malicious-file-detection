@@ -37,15 +37,12 @@ def init():
     app_path = os.path.dirname(os.path.realpath(__file__))
     config_path = os.path.join(app_path, 'config.conf')
     if os.path.isfile(config_path) is False:
-        log.exception('[APP.PY] Unable to find config.conf in {0}'.format(app_path))
         raise Exception('[APP.PY] Unable to find config.conf in {0}'.format(app_path))
 
     # Get setting from config.ini
     config = configparser.ConfigParser()
     config.read('config.conf')
-    print(config['logging'])
     config = config2dict(config)
-    print(json.dumps(config, indent=4))
 
     # Configure logging
     log_level = log.getLevelName(config['logging']['level'])

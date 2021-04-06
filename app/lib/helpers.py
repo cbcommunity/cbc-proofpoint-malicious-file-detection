@@ -65,62 +65,72 @@ class CarbonBlackCloud:
             The Get Processes API is asyncronous. We first make the request for the search,
                 then use the `job_id` to get the results. Pagination may occur.
         '''
-        # Define the request basics
-        url = '/'.join([self.url, 'api/investigate/v2/orgs', self.org_key, 'processes/search_jobs'])
-        headers = self.headers
-        headers['X-Auth-Token'] = '{0}/{1}'.format(self.cust_api_key, self.cust_api_id)
-        body = {
-            'query': 'process_hash:{0}'.format(sha256),
-            'rows': 5000,
-            'time_range': {
-                'window': '-{0}'.format(window)
+        self.log.info('[%s] Getting processes for {} within the last {}'.format(sha256, window), self.class_name)
+
+        try:
+            # Define the request basics
+            url = '/'.join([self.url, 'api/investigate/v2/orgs', self.org_key, 'processes/search_jobs'])
+            headers = self.headers
+            headers['X-Auth-Token'] = '{0}/{1}'.format(self.cust_api_key, self.cust_api_id)
+            body = {
+                'query': 'process_hash:{0}'.format(sha256),
+                'rows': 5000,
+                'time_range': {
+                    'window': '-{0}'.format(window)
+                }
             }
-        }
+            
+            # Request the data from the endpoint
+            r = requests.post(url, headers=headers, data=json.dumps(body))
 
-        # Request the data from the endpoint
-        r = requests.post(url, headers=headers, data=json.dumps(body))
+            # If the request was successful
+            if r.status_code == 200:
+                # Get the job_id
+                job_id = r.json()['job_id']
 
-        # If the request was successful
-        if r.status_code == 200:
-            # Get the job_id
-            job_id = r.json()['job_id']
+                # Prep recursion
+                start = 0
+                rows = 500
+                page = 0
+                total = rows
+                processes = None
 
-            # Prep recursion
-            start = 0
-            rows = 500
-            page = 0
-            total = rows
-            processes = None
-
-            while start < total:
-                process_results = self.get_process_results(job_id, start, rows)
-
-                # Make sure the search has completed before moving on
-                tries = 0
-                while process_results['contacted'] != process_results['completed']:
-                    if tries > 5:
-                        self.log.error('[%s] !!! Tried {0} times to get {1}. Giving up.'.format(tries, job_id), self.class_name)
-                        raise RuntimeError('[%s] !!! Tried {0} times to get {1}. Giving up.'.format(tries, job_id), self.class_name)
-
-                    tries += 1
-
-                    # Slowly increase the wait time
-                    sleep(tries)
-
+                while start < total:
                     process_results = self.get_process_results(job_id, start, rows)
+                    
+                    # Make sure the search has completed before moving on
+                    tries = 0
+                    while process_results['contacted'] != process_results['completed']:
+                        if tries > 5:
+                            self.log.error('[%s] !!! Tried {0} times to get {1}. Giving up.'.format(tries, job_id), self.class_name)
+                            raise RuntimeError('[%s] !!! Tried {0} times to get {1}. Giving up.'.format(tries, job_id), self.class_name)
 
-                if processes is None:
-                    processes = process_results
-                else:
-                    processes['results'] += process_results['results']
+                        tries += 1
 
-                total = process_results['num_available']
-                start = start + rows
-                page += 1
+                        # Slowly increase the wait time
+                        sleep(tries)
 
-            processes['pages'] = page
+                        process_results = self.get_process_results(job_id, start, rows)
 
-            return processes
+                    if processes is None:
+                        processes = process_results
+                    else:
+                        processes['results'] += process_results['results']
+
+                    total = process_results['num_available']
+                    start = start + rows
+                    page += 1
+
+                processes['pages'] = page
+
+                return processes
+
+            else:
+                self.log.error('[%s] Error {0}: {1}'.format(r.status_code, r.text), self.class_name)
+                raise Exception('Error {0}: {1}'.format(r.status_code, r.text))
+            
+        except Exception as err:
+            self.log.exception(err)
 
     def get_process_results(self, job_id, start, rows):
         '''
@@ -207,7 +217,7 @@ class CarbonBlackCloud:
             r = requests.post(url, headers=headers, data=json.dumps(body))
 
             # If the request was successful
-            if r.status_code == 200:
+            if r.status_code == 204:
                 return True
 
             else:
@@ -217,13 +227,13 @@ class CarbonBlackCloud:
         except Exception as err:
             self.log.exception(err)
 
-    def update_policy(self, device_id, policy_name):
+    def update_policy(self, device_id, policy):
         '''
-            Updates a device's policy to the given policy_name.
+            Updates a device's policy to the given policy name or id.
 
             Inputs
                 device_id (int):    The ID of the device
-                policy_name (str):  The name of the policy
+                policy (str|int):  The name of the policy, or the id of the policy as an int
 
             Raises
                 TypeError when device_id is not an integer
@@ -237,33 +247,36 @@ class CarbonBlackCloud:
 
         if isinstance(device_id, int) is False:
             raise TypeError('Expected device_id input type is integer.')
-        if isinstance(policy_name, str) is False:
-            raise TypeError('Expected policy_name input type is string.')
+        if isinstance(policy, str):
+            search_type = 'name'
+            policy_id = self.get_policy_id(policy)
+            if policy_id is None:
+                self.log.info('[%s] No Policy with name "{0}" found.'.format(policy_name), self.class_name)
+                return None
+        elif isinstance(policy, int):
+            search_type = 'id'
+            policy_id = policy
+        else:
+            raise TypeError('Expected policy input type is string or integer.')
 
         try:
-            policy_id = self.get_policy_id(policy_name)
-
-            if policy_id is not None:
-                url = '/'.join([self.url, 'appservices/v6/orgs', self.org_key, 'device_actions'])
-                headers = self.headers
-                headers['X-Auth-Token'] = '{0}/{1}'.format(self.cust_api_key, self.cust_api_id)
-                body = {
-                    'action_type': 'UPDATE_POLICY',
-                    'device_id': [device_id],
-                    'options': {
-                        'policy_id': policy_id
-                    }
+            url = '/'.join([self.url, 'appservices/v6/orgs', self.org_key, 'device_actions'])
+            headers = self.headers
+            headers['X-Auth-Token'] = '{0}/{1}'.format(self.cust_api_key, self.cust_api_id)
+            body = {
+                'action_type': 'UPDATE_POLICY',
+                'device_id': [device_id],
+                'options': {
+                    'policy_id': policy_id
                 }
-                r = requests.post(url, headers=headers, data=json.dumps(body))
-                if r.status_code == 204:
-                    self.log.info('[%s] Moved device with id {0} to policy "{1}".'.format(device_id, policy_name), self.class_name)
-                    return True
+            }
+            r = requests.post(url, headers=headers, data=json.dumps(body))
+            if r.status_code == 204:
+                self.log.info('[%s] Moved device with id {0} to policy "{1}".'.format(device_id, policy), self.class_name)
+                return True
 
-                else:
-                    self.log.exception('[%s] update_policy(): Error: {0}'.format(r.status_code), self.class_name)
-
-            self.log.info('[%s] No Policy with name "{0}" found.'.format(policy_name), self.class_name)
-            return None
+            else:
+                self.log.exception('[%s] update_policy(): Error: {0}'.format(r.status_code), self.class_name)
 
         except Exception as err:
             self.log.exception('[%s] update_policy(): %s', self.class_name, err)
@@ -589,7 +602,7 @@ class CarbonBlackCloud:
             raise TypeError('Expected wait input type is boolean.')
 
         try:
-            self.log.info('[%s] Starting LR session', self.class_name)
+            self.log.info('[%s] Starting Live Response session', self.class_name)
             url = '{0}/integrationServices/v3/cblr/session/{1}'.format(self.url, device_id)
             headers = {
                 'Content-Type': 'application/json',
@@ -604,7 +617,7 @@ class CarbonBlackCloud:
                 self.session_id = data['id']
                 self.supported_commands = data['supported_commands']
 
-                self.log.info(json.dumps(data, indent=4))
+                self.log.debug('[%s] {}'.format(json.dumps(data, indent=4)), self.class_name)
 
                 if wait:
                     while data['status'] == 'PENDING':
@@ -650,7 +663,7 @@ class CarbonBlackCloud:
 
             if r.status_code == 200:
                 data = r.json()
-                self.log.info(json.dumps(data, indent=4))
+                self.log.debug('[%s] {}'.format(json.dumps(data, indent=4)), self.class_name)
                 self.supported_commands = data['supported_commands']
 
                 return data
@@ -714,7 +727,7 @@ class CarbonBlackCloud:
 
                 data = r.json()
 
-                self.log.info(json.dumps(data, indent=4))
+                self.log.debug('[%s] {}'.format(json.dumps(data, indent=4)), self.class_name)
 
                 if wait:
                     sleep(1)
@@ -769,7 +782,7 @@ class CarbonBlackCloud:
             if r.status_code == 200:
                 data = r.json()
 
-                self.log.info(json.dumps(data, indent=4))
+                self.log.debug('[%s] {}'.format(json.dumps(data, indent=4)), self.class_name)
                 return data
 
             else:
@@ -813,7 +826,7 @@ class CarbonBlackCloud:
 
             data = r.json()
 
-            self.log.info(json.dumps(data, indent=4))
+            self.log.debug('[%s] {}'.format(json.dumps(data, indent=4)), self.class_name)
             return data
 
         except Exception as err:

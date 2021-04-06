@@ -102,10 +102,7 @@ def take_action(email, sha256, cb_processes):
             cb_processes: An array of objects containing processes related to the hash
 
         Outputs:
-            config: A dictionary of the settings loaded from config.conf
-            db: An object with everything needed for this script to work with sqlite3
-            cb: An object with everything needed for this script to work with CarbonBlack Cloud
-            pp: An object with everything needed for this script to work with Proofpoint SIEM endpoints
+            None
     '''
 
     # Populate actions with either None or the action defined
@@ -207,7 +204,13 @@ def take_action(email, sha256, cb_processes):
 
         # Change device's policy
         if 'policy' in actions and actions['policy'] is not None:
-            cb.update_policy(device_id, actions['policy'])
+            # cb.update_policy accepts a string or int. Figure out which one is in the config file
+            try:
+                policy = int(actions['policy'])
+            except:
+                policy = actions['policy']
+
+            cb.update_policy(device_id, policy)
 
         db.add_record(device_id, process_guid, sha256)
 

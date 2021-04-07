@@ -45,7 +45,10 @@ class CarbonBlackCloud:
             self.headers = {
                 'Content-Type': 'application/json',
                 'Cache-Control': 'no-cache',
-                'User-Agent': 'VMware Carbon Black Cloud Connector / cbc-proofpoint v1.0'
+                'User-Agent': 'VMware Carbon Black Cloud Connector / {0} v{1} / {2}'.format(
+                                                                                        config['general']['name'],
+                                                                                        config['general']['version'],
+                                                                                        config['general']['author'])
             }
             self.feed = None
             self.iocs = None
@@ -856,7 +859,10 @@ class Proofpoint:
             self.headers = {
                 'Content-Type': 'application/json',
                 'Cache-Control': 'no-cache',
-                'User-Agent': 'VMware Carbon Black Cloud Connector / cbc-proofpoint v1.0'
+                'User-Agent': 'VMware Carbon Black Cloud Connector / {0} v{1} / {2}'.format(
+                                                                                        config['general']['name'],
+                                                                                        config['general']['version'],
+                                                                                        config['general']['author'])
             }
 
         except Exception as err:
@@ -896,6 +902,99 @@ class Proofpoint:
         else:
             self.log.warning('[%s] Unable to pull delivered messages: {0} {1}'.format(r.status_code, r.text), self.class_name)
             raise Exception('{0}: {1}'.format(r.status_code, r.text))
+
+
+class NSX:
+    def __init__(self, config, log):
+        '''
+            Initialize the NSX class
+
+            Inputs
+                config: Dict containing settings from config.ini
+
+            Output
+                self
+        '''
+        try:
+            self.class_name = 'NSX'
+            self.log = log
+            self.log.info('[%s] Initializing', self.class_name)
+            self.config = config
+
+            self.url = clean_url(config['NSX']['url'])
+            self.username = config['NSX']['username']
+            self.password = config['NSX']['password']
+            self.headers = {
+                'Content-Type': 'application/json',
+                'Cache-Control': 'no-cache',
+                'User-Agent': 'VMware Carbon Black Cloud Connector / {0} v{1} / {2}'.format(
+                                                                                        config['general']['name'],
+                                                                                        config['general']['version'],
+                                                                                        config['general']['author'])
+            }
+
+        except Exception as err:
+            self.log.exception(err)
+
+    def search_devices(self, device_name):
+        '''
+            !!! comment here
+        '''
+        self.log.info('[%s] Searching for device: {0}.'.format(device_name), self.class_name)
+
+        # Define the request basics
+        url = '/'.join([self.url, 'api/v1/fabric/virtual-machines'])
+        headers = self.headers
+        headers['X-Auth-Token'] = '{0}/{1}'.format(self.cust_api_key, self.cust_api_id)
+        params = {
+            'display_name': device_name
+        }
+
+        # Request the data from the endpoint
+        r = requests.post(url, headers=headers, params=params,
+                          auth=(config['NSX']['username'], config['NSX']['password']))
+
+        # If the request was successful
+        if r.status_code == 200:
+            self.log.info('[%s] Pulled device information: {0}.'.format(device_id), self.class_name)
+            data = r.json()
+            return data
+        
+        self.log.error('[%s] Error {0}: {1}'.format(r.status_code, r.text), self.class_name)
+        raise Exception('Error {0}: {1}'.format(r.status_code, r.text))
+
+
+    def add_tag(self, resource_id, tag_name):
+        '''
+            !!! comment here
+        '''
+        self.log.info('[%s] Adding tag {0} to device with resource_id {1}.'.format(tag_name, resource_id), self.class_name)
+
+        # Define the request basics
+        url = '/'.join([self.url, 'policy/api/v1/infra/tags/tag-operations/win-vm-update'])
+        headers = self.headers
+        headers['X-Auth-Token'] = '{0}/{1}'.format(self.cust_api_key, self.cust_api_id)
+        body = {
+            'external_id': resource_id,
+            'tags': [{
+                'tag': tag_name
+            }]
+        }
+        params = {
+            'action': 'add_tags'
+        }
+
+        # Request the data from the endpoint
+        r = requests.post(url, headers=headers, params=params, body=json.dumps(body)
+                          auth=(config['NSX']['username'], config['NSX']['password']))
+
+        # If the request was successful
+        if r.status_code == 204:
+            self.log.info('[%s] Added tag {0} to device with resource_id {1}.'.format(tag_name, resource_id), self.class_name)
+            return True
+        
+        self.log.error('[%s] Error {0}: {1}'.format(r.status_code, r.text), self.class_name)
+        raise Exception('Error {0}: {1}'.format(r.status_code, r.text))
 
 
 class Database:

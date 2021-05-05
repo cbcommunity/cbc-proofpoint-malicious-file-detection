@@ -3,7 +3,7 @@
 
 This is an integration between Proofpoint's TAP product and VMware Carbon Black Cloud (CBC).
 
-**Latest Version:** v1.0  
+**Latest Version:** v1.2  
 **Release Date:** February 2021
 
 
@@ -99,6 +99,20 @@ To create a service principal, navigate to the Connected Applications tab, click
 
 ----
 
+### NSX Configuration
+
+An optional action is to add a NSX tag to a device. This could be used to isolate the endpoint on a VLAN, enable certain features to inspect network traffic, or just segreate for investigation.
+
+Ensure to add a tag to the `actions` section if you complete this section.
+
+| **NSX**    | **Configure NSX** |
+|------------|-------------------|
+| `url`      | URL for NSX       |
+| `username` | API username      |
+| `password` | API password      |
+
+----
+
 Python 3.x ships by default with sqlite. If for some reason you don't have sqlite, you will need to install it (`pip install sqlite3`). This database is used to keep track of and de-dupe lookups on the same process.
 
 | **sqlite3**         | **Configure sqlite3**                                |
@@ -117,6 +131,7 @@ When a process with the a malicious hash is detected, actions are triggered. By 
 | `script`            | A script to execute                |
 | `isolate`           | Isolate the endpoint?              |
 | `policy`            | Policy to move offending devices   |
+| `nsx_tag`           | Add a NSX tag to the device        |
 
 ## Running the Script
 

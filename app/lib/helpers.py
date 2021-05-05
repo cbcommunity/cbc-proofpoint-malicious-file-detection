@@ -45,10 +45,10 @@ class CarbonBlackCloud:
             self.headers = {
                 'Content-Type': 'application/json',
                 'Cache-Control': 'no-cache',
-                'User-Agent': 'VMware Carbon Black Cloud Connector / {0} v{1} / {2}'.format(
-                                                                                        config['general']['name'],
-                                                                                        config['general']['version'],
-                                                                                        config['general']['author'])
+                'User-Agent': '{0} / {1} v{2} / {3}'.format(config['general']['description'],
+                                                            config['general']['name'],
+                                                            config['general']['version'],
+                                                            config['general']['author'])
             }
             self.feed = None
             self.iocs = None
@@ -859,10 +859,10 @@ class Proofpoint:
             self.headers = {
                 'Content-Type': 'application/json',
                 'Cache-Control': 'no-cache',
-                'User-Agent': 'VMware Carbon Black Cloud Connector / {0} v{1} / {2}'.format(
-                                                                                        config['general']['name'],
-                                                                                        config['general']['version'],
-                                                                                        config['general']['author'])
+                'User-Agent': '{0} / {1} v{2} / {3}'.format(config['general']['description'],
+                                                            config['general']['name'],
+                                                            config['general']['version'],
+                                                            config['general']['author'])
             }
 
         except Exception as err:
@@ -883,7 +883,7 @@ class Proofpoint:
         if r.status_code == 200:
             data = json.loads(r.text)
 
-            bad_emails = []
+            messages_delivered = []
 
             for message in data['messagesDelivered']:
                 for info in message['threatsInfoMap']:
@@ -894,13 +894,48 @@ class Proofpoint:
                                 if self.config['debug']['sample']:
                                     part['sha256'] = self.config['debug']['sample']
 
-                                bad_emails.append(message)
+                                messages_delivered.append(message)
                                 continue
 
-            self.log.info('[%s] Found {0} malicious emails'.format(len(bad_emails)), self.class_name)
-            return bad_emails
+            self.log.info('[%s] Found {0} malicious emails'.format(len(messages_delivered)), self.class_name)
+            return messages_delivered
         else:
             self.log.warning('[%s] Unable to pull delivered messages: {0} {1}'.format(r.status_code, r.text), self.class_name)
+            raise Exception('{0}: {1}'.format(r.status_code, r.text))
+
+    def get_messages_blocked(self, interval):
+        self.log.info('[%s] Getting blocked messages within {0}'.format(interval), self.class_name)
+
+        url = self.url + '/v2/siem/messages/blocked'
+        params = {
+            'interval': interval,
+            'format': 'JSON',
+            'threatType': 'attachment'
+        }
+        r = requests.get(url, headers=self.headers, params=params,
+                         auth=(self.username, self.password))
+
+        if r.status_code == 200:
+            data = json.loads(r.text)
+
+            messages_blocked = []
+
+            for message in data['messagesBlocked']:
+                for info in message['threatsInfoMap']:
+                    if info['threatType'] == 'attachment' and info['classification'] == 'malware':
+                        for part in message['messageParts']:
+                            if part['disposition'] == 'attached':
+                                # for testing / debug
+                                if self.config['debug']['sample']:
+                                    part['sha256'] = self.config['debug']['sample']
+
+                                messages_blocked.append(message)
+                                continue
+
+            self.log.info('[%s] Found {0} malicious emails'.format(len(messages_blocked)), self.class_name)
+            return messages_blocked
+        else:
+            self.log.warning('[%s] Unable to pull blocked messages: {0} {1}'.format(r.status_code, r.text), self.class_name)
             raise Exception('{0}: {1}'.format(r.status_code, r.text))
 
 
@@ -915,23 +950,32 @@ class NSX:
             Output
                 self
         '''
+        self.url = None
+        self.username = None
+        self.password = None
+        self.headers = None
+
         try:
             self.class_name = 'NSX'
             self.log = log
             self.log.info('[%s] Initializing', self.class_name)
             self.config = config
 
-            self.url = clean_url(config['NSX']['url'])
-            self.username = config['NSX']['username']
-            self.password = config['NSX']['password']
-            self.headers = {
-                'Content-Type': 'application/json',
-                'Cache-Control': 'no-cache',
-                'User-Agent': 'VMware Carbon Black Cloud Connector / {0} v{1} / {2}'.format(
-                                                                                        config['general']['name'],
-                                                                                        config['general']['version'],
-                                                                                        config['general']['author'])
-            }
+            if 'url' in config['NSX']:
+                self.url = clean_url(config['NSX']['url'])
+            if 'username' in config['NSX']:
+                self.username = config['NSX']['username']
+            if 'password' in config['NSX']:
+                self.password = config['NSX']['password']
+            if 'general' in config:
+                self.headers = {
+                    'Content-Type': 'application/json',
+                    'Cache-Control': 'no-cache',
+                    'User-Agent': '{0} / {1} v{2} / {3}'.format(config['general']['description'],
+                                                                config['general']['name'],
+                                                                config['general']['version'],
+                                                                config['general']['author'])
+                }
 
         except Exception as err:
             self.log.exception(err)
@@ -952,7 +996,7 @@ class NSX:
 
         # Request the data from the endpoint
         r = requests.post(url, headers=headers, params=params,
-                          auth=(config['NSX']['username'], config['NSX']['password']))
+                          auth=(self.username, self.password))
 
         # If the request was successful
         if r.status_code == 200:
@@ -985,8 +1029,8 @@ class NSX:
         }
 
         # Request the data from the endpoint
-        r = requests.post(url, headers=headers, params=params, body=json.dumps(body)
-                          auth=(config['NSX']['username'], config['NSX']['password']))
+        r = requests.post(url, headers=headers, params=params, body=json.dumps(body),
+                          auth=(self.username, self.password))
 
         # If the request was successful
         if r.status_code == 204:

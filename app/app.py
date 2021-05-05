@@ -66,9 +66,9 @@ def init():
     if args.last_pull == 'None':
         args.last_pull = None
     if args.start_time == 'None':
-        args.start_time = None
+        args.start_time = '2021-04-28T00:35:22Z'
     if args.end_time == 'None':
-        args.end_time = None
+        args.end_time = '2021-04-28T01:35:22Z'
 
     # Init database
     db = Database(config, log)
@@ -335,7 +335,16 @@ def main():
 
     log.info('[APP.PY] Searching for delivered emails from Proofpoint between {0} and {1}'.format(last_pull, end_time))
 
-    bad_emails = pp.get_messages_delivered(interval)
+    messages_delivered = pp.get_messages_delivered(interval)
+    messages_blocked = pp.get_messages_blocked(interval)
+    bad_emails = []
+
+    for message in messages_delivered:
+        bad_emails.append(message)
+    
+    for message in messages_delivered:
+        bad_emails.append(message)
+    
 
     # Prevent processing of the same hash
     hash_tracker = []

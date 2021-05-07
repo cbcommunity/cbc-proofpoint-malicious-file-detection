@@ -66,9 +66,9 @@ def init():
     if args.last_pull == 'None':
         args.last_pull = None
     if args.start_time == 'None':
-        args.start_time = '2021-04-28T00:35:22Z'
+        args.start_time = None
     if args.end_time == 'None':
-        args.end_time = '2021-04-28T01:35:22Z'
+        args.end_time = None
 
     # Init database
     db = Database(config, log)
@@ -342,9 +342,8 @@ def main():
     for message in messages_delivered:
         bad_emails.append(message)
     
-    for message in messages_delivered:
+    for message in messages_blocked:
         bad_emails.append(message)
-    
 
     # Prevent processing of the same hash
     hash_tracker = []

@@ -60,7 +60,7 @@ def init():
     args = parser.parse_args()
 
     if args.now:
-        print('Current time GMT in ISO8601 format: {0}'.format(convert_time('now')))
+        print('\n\nCurrent time GMT in ISO8601 format:\n{0}\n\n'.format(convert_time('now')))
         sys.exit(0)
 
     if args.last_pull == 'None':
@@ -88,6 +88,8 @@ def init():
 
     config['Proofpoint']['start_time'] = args.start_time
     config['Proofpoint']['end_time'] = args.end_time
+    config['Proofpoint']['include_delivered'] = str2bool(config['Proofpoint']['include_delivered'])
+    config['Proofpoint']['include_blocked'] = str2bool(config['Proofpoint']['include_blocked'])
 
     # Init NSX if enabled
     if ('NSX' in config):
@@ -339,11 +341,13 @@ def main():
     messages_blocked = pp.get_messages_blocked(interval)
     bad_emails = []
 
-    for message in messages_delivered:
-        bad_emails.append(message)
+    if config['Proofpoint']['include_delivered'] is True:
+        for message in messages_delivered:
+            bad_emails.append(message)
     
-    for message in messages_blocked:
-        bad_emails.append(message)
+    if config['Proofpoint']['include_blocked'] is True:
+        for message in messages_blocked:
+            bad_emails.append(message)
 
     # Prevent processing of the same hash
     hash_tracker = []

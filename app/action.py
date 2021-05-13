@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+import re
 import sys
 import argparse
 import configparser
@@ -94,10 +95,22 @@ def main():
             # Send kill command
             lr_command = cb.send_command('kill', argument=pid, wait=True)
 
+        else:
+            # Also search for the file_path in the process list
+            clean_path = re.sub(r'\\\\', '\\\\', process['command_line'], 0, re.MULTILINE)
+            clean_path = clean_path.lower()
+            file_path = file_path.lower()
+            if clean_path.find(file_path) >= 0:
+                log.info('[ACTION.PY] Process is running, killing process')
+
+                found = True
+                # Send kill command
+                lr_command = cb.send_command('kill', argument=str(process['pid']), wait=True)                
+
     if found is False:
         log.info('[ACTION.PY] Process {0} was not running on device {1}'.format(pid, device_id))
 
-    # Send kill command
+    # Send delete command
     log.info('[ACTION.PY] Deleting file from endpoint')
     lr_command = cb.send_command('delete file', argument=file_path, wait=True)
 

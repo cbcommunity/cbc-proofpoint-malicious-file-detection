@@ -240,7 +240,6 @@ class CarbonBlackCloud:
 
             Raises
                 TypeError when device_id is not an integer
-                TypeError when policy_name is not a string
 
             Output
                 An object of the device
@@ -254,7 +253,7 @@ class CarbonBlackCloud:
             search_type = 'name'
             policy_id = self.get_policy_id(policy)
             if policy_id is None:
-                self.log.info('[%s] No Policy with name "{0}" found.'.format(policy_name), self.class_name)
+                self.log.info('[%s] No Policy with name "{0}" found.'.format(policy), self.class_name)
                 return None
         elif isinstance(policy, int):
             search_type = 'id'
@@ -305,6 +304,46 @@ class CarbonBlackCloud:
 
             self.log.info('[%s] No Policy with name "{0}" found.'.format(policy_name), self.class_name)
             return None
+
+    #
+    # CBC Endpoint Standard
+    #
+    def search_reputations(self, sha256):
+        '''
+            In CBC Endpoint Standard we can configure a reputation override (ban a hash).
+            This functionality is coming soon to CBC Enterprise EDR.
+
+            Inputs
+                sha256 (str):   The has to search for
+            
+            Outputs
+                An object of the results
+            
+            Raises
+                TypeError when sha256 is not a string
+                Something when the length is not 64 characters
+        '''
+
+        self.log.info('[%s] Searching for reputation override with SHA256 {0}'.format(sha256), self.class_name)
+
+        url = '{0}/appservices/v6/orgs/{1}/reputations/overrides/_search'.format(self.url, self.org_key)
+        headers = self.headers
+        headers['X-Auth-Token'] = '{0}/{1}'.format(self.cust_api_key, self.cust_api_id)
+        body = {
+            'query': '{0}'.format(sha256),
+            'sort_field': 'create_time',
+            'sort_order': 'asc'
+        }
+        r = requests.get(url, headers=headers, body=json.loads(body))
+
+        if r.status_code == 200:
+            data = r.json()
+            reputations = data['results']
+
+            self.log.info('[%s] Found {0} reputation overrides for {1}'.format(len(reputations), sha256), self.class_name)                    
+
+    def configure_reputation(self):
+        pass
 
     #
     # CBC Enterprise EDR
@@ -656,7 +695,7 @@ class CarbonBlackCloud:
                 raise Exception('No session established')
 
             self.log.info('[%s] Getting status of session: {0}'.format(self.session_id), self.class_name)
-
+            # url = '{0}/appservices/v6/orgs/{1}/liveresponse/sessions/{2}'.format(self.url, self.org_key, self.session_id)
             url = '{0}/integrationServices/v3/cblr/session/{1}'.format(self.url, self.session_id)
             headers = {
                 'Content-Type': 'application/json',
@@ -670,6 +709,15 @@ class CarbonBlackCloud:
                 self.supported_commands = data['supported_commands']
 
                 return data
+
+            elif r.status_code == 404:
+                # If a session request times out, this message is given:
+                #   404: {"reason":"Session not found", "success":false, "status":"NOT_FOUND"}
+                data = r.json()
+                if data['reason'] == 'Session not found':
+                    self.log.error('[%s] Session timed out.')
+                
+                return False
 
             else:
                 raise Exception('{0}: {1}'.format(r.status_code, r.text))
@@ -890,14 +938,15 @@ class Proofpoint:
                     if info['threatType'] == 'attachment' and info['classification'] == 'malware':
                         for part in message['messageParts']:
                             if part['disposition'] == 'attached':
-                                # !!! for testing / debug
-                                if self.config['debug']['sample']:
-                                    part['sha256'] = self.config['debug']['sample']
+                                # for testing / debug
+                                if 'debug' in self.config:
+                                    if self.config['debug']['sample']:
+                                        part['sha256'] = self.config['debug']['sample']
 
                                 messages_delivered.append(message)
                                 continue
 
-            self.log.info('[%s] Found {0} malicious emails'.format(len(messages_delivered)), self.class_name)
+            self.log.info('[%s] Found {0} malicious emails delivered'.format(len(messages_delivered)), self.class_name)
             return messages_delivered
         else:
             self.log.warning('[%s] Unable to pull delivered messages: {0} {1}'.format(r.status_code, r.text), self.class_name)
@@ -926,13 +975,14 @@ class Proofpoint:
                         for part in message['messageParts']:
                             if part['disposition'] == 'attached':
                                 # for testing / debug
-                                if self.config['debug']['sample']:
-                                    part['sha256'] = self.config['debug']['sample']
+                                if 'debug' in self.config:
+                                    if self.config['debug']['sample']:
+                                        part['sha256'] = self.config['debug']['sample']
 
                                 messages_blocked.append(message)
                                 continue
 
-            self.log.info('[%s] Found {0} malicious emails'.format(len(messages_blocked)), self.class_name)
+            self.log.info('[%s] Found {0} malicious emails blocked'.format(len(messages_blocked)), self.class_name)
             return messages_blocked
         else:
             self.log.warning('[%s] Unable to pull blocked messages: {0} {1}'.format(r.status_code, r.text), self.class_name)
@@ -1000,13 +1050,12 @@ class NSX:
 
         # If the request was successful
         if r.status_code == 200:
-            self.log.info('[%s] Pulled device information: {0}.'.format(device_id), self.class_name)
+            self.log.info('[%s] Pulled device information: {0}.'.format(device_name), self.class_name)
             data = r.json()
             return data
         
         self.log.error('[%s] Error {0}: {1}'.format(r.status_code, r.text), self.class_name)
         raise Exception('Error {0}: {1}'.format(r.status_code, r.text))
-
 
     def add_tag(self, resource_id, tag_name):
         '''

@@ -1,3 +1,6 @@
+# Copyright 2021 VMware, Inc.
+# SPDX-License-Identifier: MIT
+
 FROM python:3.8
 MAINTAINER Ryan Fortress (rfortress@vmware.com)
 

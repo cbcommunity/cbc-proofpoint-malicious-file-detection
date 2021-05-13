@@ -1,3 +1,6 @@
+# Copyright 2021 VMware, Inc.
+# SPDX-License-Identifier: MIT
+
 # This script is to set up the Theia development environment. This script should be run from the Theia terminal.
 
 # Function for yes/no questions

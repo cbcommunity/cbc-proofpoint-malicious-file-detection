@@ -1,3 +1,6 @@
+# Copyright 2021 VMware, Inc.
+# SPDX-License-Identifier: MIT
+
 #
 # This file is for enabling the execution loop in the Docker container.
 # Change the LOOP_MINUTES varaible to a value between 1 and 60.

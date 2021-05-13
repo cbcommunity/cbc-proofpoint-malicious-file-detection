@@ -1,5 +1,7 @@
 #!/bin/sh
 # -*- coding: utf-8 -*-
+# Copyright 2021 VMware, Inc.
+# SPDX-License-Identifier: MIT
 
 import os
 import re

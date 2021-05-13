@@ -53,7 +53,6 @@ def init():
 
     # Configure CLI input arguments
     parser = argparse.ArgumentParser(description='Fetch events for messages delivered in the specified time period which contained a known threat')
-    parser.add_argument('--last-pull', default='None', help='Set the last pull time in ISO8601 format')
     parser.add_argument('--start-time', default='None', help='Set the start time in ISO8601 format')
     parser.add_argument('--end-time', default='None', help='Set the end time in ISO8601 format')
     parser.add_argument('--now', action='store_true', default=False, help='Output the current GMT time in ISO8601 format. Does not pull any data.')
@@ -63,8 +62,6 @@ def init():
         print('\n\nCurrent time GMT in ISO8601 format:\n{0}\n\n'.format(convert_time('now')))
         sys.exit(0)
 
-    if args.last_pull == 'None':
-        args.last_pull = None
     if args.start_time == 'None':
         args.start_time = None
     if args.end_time == 'None':
@@ -72,10 +69,6 @@ def init():
 
     # Init database
     db = Database(config, log)
-
-    # If a last_pull was provided, update the database with it
-    if args.last_pull is not None:
-        db.last_pull(args.last_pull)
 
     # Trim the database
     db.trim_records('records', config['sqlite3']['deprecation'])
@@ -88,6 +81,7 @@ def init():
 
     config['Proofpoint']['start_time'] = args.start_time
     config['Proofpoint']['end_time'] = args.end_time
+    config['Proofpoint']['delta'] = int(config['Proofpoint']['delta'])
     config['Proofpoint']['include_delivered'] = str2bool(config['Proofpoint']['include_delivered'])
     config['Proofpoint']['include_blocked'] = str2bool(config['Proofpoint']['include_blocked'])
 
@@ -303,39 +297,43 @@ def main():
     # Get inits
     init()
 
+    # If the start_time wasn't provided, use now - 60 minutes - the delta defined in the config file
+    # This defaults to getting an hour of data each run
     if config['Proofpoint']['start_time'] is None:
-        # Get Proofpoint events from the last pull until 30 minutes ago
-        last_pull = db.last_pull()
+        time_delta = timedelta(minutes=(60 + config['Proofpoint']['delta']))
+        start_time = datetime.now() - time_delta
+        start_time = datetime.strftime(start_time, '%Y-%m-%dT%H:%M:%SZ')
     else:
-        last_pull = config['Proofpoint']['start_time']
+        start_time = config['Proofpoint']['start_time']
 
-    delta_time = datetime.now() - timedelta(minutes=int(config['Proofpoint']['delta']))
-
+    # If the end_time wasn't provided, use now - the delta defined in the config file
     if config['Proofpoint']['end_time'] is None:
-        end_time = datetime.strftime(delta_time, '%Y-%m-%dT%H:%M:%SZ')
+        time_delta = timedelta(minutes=int(config['Proofpoint']['delta']))
+        end_time = datetime.now() - time_delta
+        end_time = datetime.strftime(end_time, '%Y-%m-%dT%H:%M:%SZ')
     else:
         end_time = config['Proofpoint']['end_time']
 
     # sample interval: '2020-10-12T03:00:00Z/2020-10-12T04:00:00Z'
-    interval = '{0}/{1}'.format(last_pull, end_time)
+    interval = '{0}/{1}'.format(start_time, end_time)
 
     # Convert interval to difference in seconds
-    search_span = datetime.strptime(end_time, '%Y-%m-%dT%H:%M:%SZ') - datetime.strptime(last_pull, '%Y-%m-%dT%H:%M:%SZ')
+    search_span = datetime.strptime(end_time, '%Y-%m-%dT%H:%M:%SZ') - datetime.strptime(start_time, '%Y-%m-%dT%H:%M:%SZ')
     search_span = int(search_span.total_seconds())
 
     # if search_span < 30 seconds
     if search_span < 30:
         print('Error: Search timeframe too short. Timeframe must be > 30 seconds and < 1 hour: {0}'.format(interval))
         log.info('[APP.PY] Search timeframe too short. Timeframe must be > 30 seconds and < 1 hour: {0}'.format(interval))
-        sys.exit(0)
+        sys.exit(1)
 
     # if search_span > 1 hour
     if search_span > 3600:
         print('Error: Search timeframe too long. Timeframe must be > 30 seconds and < 1 hour: {0}'.format(interval))
         log.info('[APP.PY] Search timeframe too long. Timeframe must be > 30 seconds and < 1 hour: {0}'.format(interval))
-        sys.exit(0)
+        sys.exit(1)
 
-    log.info('[APP.PY] Searching for delivered emails from Proofpoint between {0} and {1}'.format(last_pull, end_time))
+    log.info('[APP.PY] Searching for delivered emails from Proofpoint between {0} and {1}'.format(start_time, end_time))
 
     messages_delivered = pp.get_messages_delivered(interval)
     messages_blocked = pp.get_messages_blocked(interval)
@@ -375,10 +373,6 @@ def main():
     #   are cached and waiting to be added to the watchlist. If so, add them.
     if 'watchlist' in config['actions'] and config['actions']['watchlist'] is not None:
         cb.update_feed(config['actions']['watchlist'])
-
-    if config['Proofpoint']['end_time'] is None:
-        # Update the last_pull time for the next execution
-        db.last_pull(timestamp=end_time)
 
     # Close the connection to the database
     db.close()

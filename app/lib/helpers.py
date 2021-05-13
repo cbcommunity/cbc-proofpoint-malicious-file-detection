@@ -1121,30 +1121,12 @@ class Database:
                     device_id text,
                     process_guid text,
                     sha256 text
-                );''',
-
-                '''CREATE TABLE IF NOT EXISTS last_pull (
-                    id integer PRIMARY KEY,
-                    timestamp text
-                );''',
-
-                '''SELECT * FROM last_pull'''
+                );'''
             ]
 
             try:
                 cursor = self.conn.cursor()
                 cursor.execute(sql[0])
-                cursor.execute(sql[1])
-                cursor.execute(sql[2])
-                rows = cursor.fetchall()
-
-                if len(rows) == 0:
-                    last_pull = datetime.now() - timedelta(minutes=int(self.config['Proofpoint']['delta']))
-                    last_pull = datetime.strftime(last_pull, '%Y-%m-%dT%H:%M:%SZ')
-                    sql = '''INSERT INTO last_pull(timestamp) VALUES(?)'''
-                    cursor.execute(sql, (last_pull,))
-                    self.conn.commit()
-                    self.log.info('[%s] Created tables and added current timestamp as last pull time', self.class_name)
 
             except Exception as err:
                 self.log.exception(err)
@@ -1201,52 +1183,6 @@ class Database:
                 self.conn = None
 
             self.log.info('[%s] Connection closed', self.class_name)
-
-        except Exception as err:
-            self.log.exception(err)
-
-    def last_pull(self, timestamp=None):
-        '''
-            Get or set the last pull time in the database
-            Inputs:
-                timestamp:
-                    If None, get the last pull time from the database
-                    Otherwise set the last pull time with either the epoch (int)
-                        or ISO8601 format (str)
-            Output:
-                Returns the last pull timestamp from the database if timestamp is None
-                Returns the database response if timestamp == epoch or ISO8601
-        '''
-        if self.conn is None:
-            raise Exception('No connection to database')
-
-        try:
-            if timestamp is not None and isinstance(timestamp, (str, int)) is False:
-                raise Exception('Timestamp must be a string, integer, or None')
-
-            # Get or set last pull timestamp
-            if timestamp is None:
-                self.log.info('[%s] Getting last pull', self.class_name)
-                sql = 'SELECT timestamp FROM last_pull WHERE id = 1'
-                cursor = self.conn.cursor()
-                cursor.execute(sql)
-                rows = cursor.fetchall()
-                return rows[0][0]
-
-            else:
-                if isinstance(timestamp, int):
-                    timestamp = convert_time(timestamp)
-
-                self.log.info('[%s] Updating last pull to {0}'.format(timestamp), self.class_name)
-
-                timestamp = (timestamp,)
-                sql = 'UPDATE last_pull SET timestamp = ? WHERE id = 1'
-                cursor = self.conn.cursor()
-                cursor.execute(sql, timestamp)
-                self.conn.commit()
-
-                self.log.info('[%s] Updated last pull to {0}'.format(timestamp), self.class_name)
-                return True
 
         except Exception as err:
             self.log.exception(err)

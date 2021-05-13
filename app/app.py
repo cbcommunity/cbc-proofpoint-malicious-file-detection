@@ -335,15 +335,15 @@ def main():
 
     log.info('[APP.PY] Searching for delivered emails from Proofpoint between {0} and {1}'.format(start_time, end_time))
 
-    messages_delivered = pp.get_messages_delivered(interval)
-    messages_blocked = pp.get_messages_blocked(interval)
     bad_emails = []
 
     if config['Proofpoint']['include_delivered'] is True:
+        messages_delivered = pp.get_messages_delivered(interval)
         for message in messages_delivered:
             bad_emails.append(message)
     
     if config['Proofpoint']['include_blocked'] is True:
+        messages_blocked = pp.get_messages_blocked(interval)
         for message in messages_blocked:
             bad_emails.append(message)
 

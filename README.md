@@ -139,14 +139,10 @@ The script has the following CLI options:
 
     optional arguments:
       -h, --help            show this help message and exit
-      --last-pull LAST_PULL
-                            Set the last pull time in ISO8601 format
       --start-time START_TIME
                             Set the start time in ISO8601 format
       --end-time END_TIME   Set the end time in ISO8601 format
       --now                 Output the current GMT time in ISO8601 format. Does not pull any data.
-
-The `--last_pull` option overwrites the `last_pull` value stored in the database and will pull CBC Endpoint Standard or CBC Enterprise EDR processes since that time.
 
 To manually specify a timeframe (min 30 seconds, max 1 hour) use the `--start-time` and `--end-time` arguments.
 
@@ -156,9 +152,9 @@ Typical usage:
 
     python app.py
 
-Specify start date:
+Specify a timeframe:
 
-    python app.py --last_pull 2021-01-01T12:34:56Z
+    python app.py --start-time 2021-01-01T12:00:00Z --end-time 2021-01-01T13:00:00Z
 
 ## Docker
 

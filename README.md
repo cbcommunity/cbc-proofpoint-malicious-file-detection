@@ -75,10 +75,10 @@ The Organization Key can be found in the upper-left of the **Settings** > **API 
 |:--------------------|:---------------------------------------------------------------|
 | `url`               | URL of CBC instance                                            |
 | `org_key`           | Org Key                                                        |
-| `api_id`            | API ID                                                         |
-| `api_key`           | API Secret Secret Key                                          |
 | `custom_api_id`     | Custom API ID                                                  |
 | `custom_api_key`    | Custom API Secret Key                                          |
+| `api_id`            | API ID                                                         |
+| `api_key`           | API Secret Secret Key                                          |
 | `window`            | Window of time to search for SHA256 processes. Maximum 2 weeks |
 
 ----
@@ -92,7 +92,6 @@ To create a service principal, navigate to the Connected Applications tab, click
 | **Proofpoint**      | **Configure Proofpoint TAP**                                                |
 |:--------------------|:----------------------------------------------------------------------------|
 | `url`               | URL for Proofpoint                                                          |
-| `api_key`           | API Key                                                                     |
 | `principal`         | Login Username                                                              |
 | `secret`            | Login Password                                                              |
 | `include_delivered` | Search for the hashes of attachments that Proofpoint delivered to the inbox |

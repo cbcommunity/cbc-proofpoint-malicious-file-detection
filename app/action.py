@@ -6,6 +6,7 @@
 import os
 import re
 import sys
+import json
 import argparse
 import configparser
 import logging as log
@@ -81,16 +82,24 @@ def main():
 
 
     # If LR is enabled, start LR flow
-    cb.start_session(device_id, wait=True)
+    lr_session = cb.start_session(device_id, wait=True)
+    if lr_session is False:
+        log.error('[ACTION.PY] Unable to start Live Response session')
+        sys.exit(1)
+
 
     log.info('[ACTION.PY] Connected to endpoint: {0}'.format(device_id))
 
     # Check to see if the process is still running
     lr_command = cb.send_command('process list', wait=True)
+    if lr_command is False:
+        log.error('[ACTION.PY] Unable to send Live Response command')
+        sys.exit(1)
 
     found = False
+    
     for process in lr_command['processes']:
-        if str(process['pid']) == pid:
+        if str(process['process_pid']) == pid:
             log.info('[ACTION.PY] Process is running, killing process')
 
             found = True
@@ -99,7 +108,7 @@ def main():
 
         else:
             # Also search for the file_path in the process list
-            clean_path = re.sub(r'\\\\', '\\\\', process['command_line'], 0, re.MULTILINE)
+            clean_path = re.sub(r'\\\\', '\\\\', process['process_path'], 0, re.MULTILINE)
             clean_path = clean_path.lower()
             file_path = file_path.lower()
             if clean_path.find(file_path) >= 0:

@@ -370,12 +370,23 @@ class CarbonBlackCloud:
 
         try:
             r = requests.get(url, headers=headers)
-            feeds = r.json()
-            self.log.info('[%s] Pulled {0} feeds'.format(len(feeds['results'])), self.class_name)
-            return feeds['results']
+
+            if r.status_code == 200:
+                feeds = r.json()
+                self.log.info('[%s] Pulled {0} feeds'.format(len(feeds['results'])), self.class_name)
+                return feeds['results']
+
+            elif r.status_code == 403:
+                self.log.error('[%s] Unable to pull feeds. Got status_code 403. Please make sure the API key with ID {0} has the org.feeds - READ permission.'.format(self.cust_api_id), self.class_name)
+
+            else:
+                self.log.error('[%s] Unable to pull feeds. Got status code {0}'.format(r.status_code), self.class_name)
+
+            return False
 
         except Exception as err:
             self.log.exception(err)
+            return False
 
     def get_feed(self, feed_id=None, feed_name=None, use_cache=True):
         '''
@@ -420,6 +431,10 @@ class CarbonBlackCloud:
             # If the feed_name was provided, get all the feeds and check their names
             if feed_name is not None:
                 feeds = self.get_all_feeds()
+                if feeds is False:
+                    self.log.error('[%s] Unable to pull feeds.', self.class_name)
+                    return False
+
                 for feed in feeds:
                     if feed['name'] == feed_name:
                         feed_id = feed['id']
@@ -436,23 +451,32 @@ class CarbonBlackCloud:
                 headers['X-Auth-Token'] = '{0}/{1}'.format(self.cust_api_key, self.cust_api_id)
 
                 r = requests.get(url, headers=headers)
-                feed = r.json()
+                if r.status_code == 200:
+                    feed = r.json()
 
-                # Save to cache
-                self.feed = feed
+                    # Save to cache
+                    self.feed = feed
 
-                # Build a cache of the existing IOCs in the feed
-                # This is used for deduplication when IOCs are added
-                if self.iocs is None:
-                    self.iocs = []
+                    # Build a cache of the existing IOCs in the feed
+                    # This is used for deduplication when IOCs are added
+                    if self.iocs is None:
+                        self.iocs = []
 
-                for report in feed['reports']:
-                    for ioc in report['iocs_v2']:
-                        for value in ioc['values']:
-                            self.iocs.append(value)
+                    for report in feed['reports']:
+                        for ioc in report['iocs_v2']:
+                            for value in ioc['values']:
+                                self.iocs.append(value)
 
-                self.log.info('[%s] Pulled feed "{}"'.format(feed['feedinfo']['name']), self.class_name)
-                return feed
+                    self.log.info('[%s] Pulled feed "{}"'.format(feed['feedinfo']['name']), self.class_name)
+                    return feed
+
+                elif r.status_code == 403:
+                    self.log.error('[%s] Unable to pull feeds. Got status_code 403. Please make sure the API key with ID {0} has the org.feeds - READ permission.'.format(self.cust_api_id), self.class_name)
+
+                else:
+                    self.log.error('[%s] Unable to pull feeds. Got status code {0}'.format(r.status_code), self.class_name)
+
+                return False
 
             except Exception as err:
                 self.log.exception(err)
@@ -511,12 +535,14 @@ class CarbonBlackCloud:
                 new_feed = r.json()
                 feed['feedinfo']['id'] = new_feed['id']
 
-
                 self.log.info('[%s] Created feed "{0}" with 0 indicators'.format(name), self.class_name)
+
+            elif r.status_code == 403:
+                self.log.error('[%s] Unable to create feed. 403 Authentication error. Make sure API with ID {0} has org.feeds CREATE permission.', self.class_name)
             else:
                 self.log.error('[%s] Error creating feed: {0} {1}'.format(r.status_code, r.text), self.class_name)
 
-            return feed
+            raise Exception('Unable to create feed.')
 
         except Exception as err:
             self.log.exception(err)
@@ -528,19 +554,38 @@ class CarbonBlackCloud:
 
         # Get the feed so we can get the id
         feed = self.get_feed(feed_name=feed_name)
+
+        if feed is False:
+            self.log.error('[%s] Unable to update feed', self.class_name)
+            return False
+
         for report in self.new_reports:
             feed['reports'].append(report)
         feed_id = feed['feedinfo']['id']
 
-        url = '/'.join([self.url, 'threathunter/feedmgr/v2/orgs', self.org_key, 'feeds', feed_id, 'reports'])
-        headers = self.headers
-        headers['X-Auth-Token'] = '{0}/{1}'.format(self.cust_api_key, self.cust_api_id)
-        body = { "reports": feed['reports'] }
+        try:
+            url = '/'.join([self.url, 'threathunter/feedmgr/v2/orgs', self.org_key, 'feeds', feed_id, 'reports'])
+            headers = self.headers
+            headers['X-Auth-Token'] = '{0}/{1}'.format(self.cust_api_key, self.cust_api_id)
+            body = { "reports": feed['reports'] }
 
 
-        r = requests.post(url, headers=headers, json=body)
-        data = r.json()
-        return data
+            r = requests.post(url, headers=headers, json=body)
+            if r.status_code == 200:
+                data = r.json()
+                return data
+            
+            elif r.status_code == 403:
+                self.log.error('[%s] Unable to update feed. 403 Authorization error. Make sure API with ID {0} has org.feeds CREATE permission.'.format(self.cust_api_id), self.class_name)
+
+            else:
+                self.log.error('[%s] Unable to update feed. {0}.'.format(r.text), self.class_name)
+
+            raise Exception('Unable to update feed.')
+
+        except Exception as err:
+            self.log.exception(err)
+            return False
 
     def create_report(self, timestamp, title, description, severity, link, tags, sha256):
         '''
@@ -649,31 +694,39 @@ class CarbonBlackCloud:
 
         try:
             self.log.info('[%s] Starting Live Response session', self.class_name)
-            url = '{0}/integrationServices/v3/cblr/session/{1}'.format(self.url, device_id)
+            url = '{0}/appservices/v6/orgs/{1}/liveresponse/sessions'.format(self.url, self.org_key)
             headers = {
                 'Content-Type': 'application/json',
-                'X-Auth-Token': '{0}/{1}'.format(self.lr_api_key, self.lr_api_id)
+                'X-Auth-Token': '{0}/{1}'.format(self.cust_api_key, self.cust_api_id)
             }
-            r = requests.post(url, headers=headers)
+            body = {
+                'device_id': device_id
+            }
+            r = requests.post(url, headers=headers, json=body)
 
-            if r.status_code == 200:
+            if r.status_code == 201:
                 data = r.json()
+                self.log.debug('[%s] {}'.format(json.dumps(data, indent=4)), self.class_name)
 
                 self.device_id = device_id
                 self.session_id = data['id']
-                self.supported_commands = data['supported_commands']
-
-                self.log.debug('[%s] {}'.format(json.dumps(data, indent=4)), self.class_name)
 
                 if wait:
                     while data['status'] == 'PENDING':
                         sleep(15)
                         data = self.get_session()
+                
+                self.supported_commands = data['supported_commands']
 
                 return data
 
+            elif r.status_code == 403:
+                self.log.error('[%s] Unable to create session. 403 Authentication Error. Make sure API with ID {0} has the `org.liveresponse.session` CREATE permission.')
+
             else:
-                raise Exception('{0}: {1}'.format(r.status_code, r.text))
+                self.log.error('[%s] Unable to create session: {0}'.format(r.text), self.class_name)
+
+            return False
 
         except Exception as err:
             self.log.exception(err)
@@ -699,11 +752,10 @@ class CarbonBlackCloud:
                 raise Exception('No session established')
 
             self.log.info('[%s] Getting status of session: {0}'.format(self.session_id), self.class_name)
-            # url = '{0}/appservices/v6/orgs/{1}/liveresponse/sessions/{2}'.format(self.url, self.org_key, self.session_id)
-            url = '{0}/integrationServices/v3/cblr/session/{1}'.format(self.url, self.session_id)
+            url = '{0}/appservices/v6/orgs/{1}/liveresponse/sessions/{2}'.format(self.url, self.org_key, self.session_id)
             headers = {
                 'Content-Type': 'application/json',
-                'X-Auth-Token': '{0}/{1}'.format(self.lr_api_key, self.lr_api_id)
+                'X-Auth-Token': '{0}/{1}'.format(self.cust_api_key, self.cust_api_id)
             }
             r = requests.get(url, headers=headers)
 
@@ -714,6 +766,9 @@ class CarbonBlackCloud:
 
                 return data
 
+            elif r.status_code == 403:
+                self.log.error('[%s] Unable to get status of session. 403 Authentication Error. Make sure API with ID {0} has the `org.liveresponse.session` READ permission.'.format(self.cust_api_id))
+
             elif r.status_code == 404:
                 # If a session request times out, this message is given:
                 #   404: {"reason":"Session not found", "success":false, "status":"NOT_FOUND"}
@@ -723,8 +778,7 @@ class CarbonBlackCloud:
                 
                 return False
 
-            else:
-                raise Exception('{0}: {1}'.format(r.status_code, r.text))
+            raise Exception('{0}: {1}'.format(r.status_code, r.text))
 
         except Exception as err:
             self.log.exception(err)
@@ -742,16 +796,34 @@ class CarbonBlackCloud:
             Raises
                 TypeError if command is not a string
                 TypeError if argument is not a string or None
+                ValueError if command provided is not an available command
 
             Outputs
                 data (dict): Raw JSON from command_status(data[id]) if wait is True
                 data (dict): Raw JSON from response to request if wait is False
         '''
 
+        # Each command has a different body structure. This maps it.
+        command_map = {
+            'process list': {
+                'name': 'process list'
+            },
+            'kill': {
+                'name': 'kill',
+                'pid': argument
+            },
+            'delete file': {
+                'name': 'delete file',
+                'path': argument
+            }
+        }
+
         if isinstance(command, str) is False:
             raise TypeError('Expected command input type is string.')
         if argument is not None and isinstance(argument, str) is False:
             raise TypeError('Expected argument input type is string or None.')
+        if command not in command_map:
+            raise ValueError('The command provided is not in the command_map: {0}'.format(command))
 
         self.log.info('[%s] Sending command to LR session: {0}'.format(command), self.class_name)
 
@@ -765,32 +837,40 @@ class CarbonBlackCloud:
                 return 'Error: command not in available commands: {0}'.format(command)
 
             try:
-                url = '{0}/integrationServices/v3/cblr/session/{1}/command'.format(self.url, self.session_id)
+                url = '{0}/appservices/v6/orgs/{1}/liveresponse/sessions/{2}/commands'.format(self.url, self.org_key, self.session_id)
                 headers = {
                     'Content-Type': 'application/json',
-                    'X-Auth-Token': '{0}/{1}'.format(self.lr_api_key, self.lr_api_id)
+                    'X-Auth-Token': '{0}/{1}'.format(self.cust_api_key, self.cust_api_id)
                 }
+                body = command_map[command]
+                self.log.debug('[%s] Sending command: {0}'.format(body), self.class_name)
 
-                body = {
-                    'session_id': self.session_id,
-                    'name': command
-                }
                 if argument is not None:
                     body['object'] = argument
 
                 r = requests.post(url, headers=headers, json=body)
 
-                data = r.json()
+                if r.status_code == 201:
+                    data = r.json()
 
-                self.log.debug('[%s] {}'.format(json.dumps(data, indent=4)), self.class_name)
+                    self.log.debug('[%s] {0}'.format(json.dumps(data, indent=4)), self.class_name)
 
-                if wait:
-                    sleep(1)
-                    while data['status'] == 'pending':
-                        sleep(5)
-                        data = self.command_status(data['id'])
+                    if wait:
+                        sleep(1)
+                        while data['status'] == 'pending':
+                            sleep(5)
+                            data = self.command_status(data['id'])
 
-                return data
+                    self.log.info('[%s] Command {0} sent successfully'.format(command), self.class_name)
+                    return data
+
+                elif r.status_code == 403:
+                    self.log.error('[%s] Unable to get status of command. 403 Authentication Error. Make sure API with ID {0} has the correct permission for the `{1}` command.'.format(self.cust_api_id, command), self.class_name)
+
+                else:
+                    self.log.error('[%s] Unable to get status of command', self.class_name)
+
+                return False
 
             except Exception as err:
                 self.log.exception(err)
@@ -826,22 +906,23 @@ class CarbonBlackCloud:
 
             self.log.info('[%s] Getting status of command: {0}'.format(command_id), self.class_name)
 
-            url = '{0}/integrationServices/v3/cblr/session/{1}/command/{2}'.format(self.url, self.session_id,
-                                                                                   command_id)
+            url = '{0}/appservices/v6/orgs/{1}/liveresponse/sessions/{2}/commands/{3}'.format(self.url, self.org_key, self.session_id, command_id)
             headers = {
                 'Content-Type': 'application/json',
-                'X-Auth-Token': '{0}/{1}'.format(self.lr_api_key, self.lr_api_id)
+                'X-Auth-Token': '{0}/{1}'.format(self.cust_api_key, self.cust_api_id)
             }
             r = requests.get(url, headers=headers)
 
             if r.status_code == 200:
                 data = r.json()
 
-                self.log.debug('[%s] {}'.format(json.dumps(data, indent=4)), self.class_name)
+                # self.log.debug('[%s] {0}'.format(json.dumps(data, indent=4)), self.class_name)
                 return data
 
-            else:
-                raise Exception('{0}: {1}'.format(r.status_code, r.text))
+            elif r.status_code == 403:
+                self.log.error('[%s] Unable to get status of session. 403 Authentication Error. Make sure API with ID {0} has the `org.liveresponse.session` and `org.liveresponse.process` READ permission.'.format(self.cust_api_id), self.class_name)
+
+            raise Exception('{0}: {1}'.format(r.status_code, r.text))
 
         except Exception as err:
             self.log.exception(err)
@@ -866,7 +947,7 @@ class CarbonBlackCloud:
                 self.log.info('Error: no session')
                 return 'Error: no session'
 
-            url = '{0}/integrationServices/v3/cblr/session'.format(self.url)
+            url = '{0}/appservices/v6/orgs/{1}/liveresponse/sessions/{2}'.format(self.url, self.org_key, self.session_id)
             headers = {
                 'Content-Type': 'application/json',
                 'X-Auth-Token': '{0}/{1}'.format(self.lr_api_key, self.lr_api_id)
@@ -881,8 +962,15 @@ class CarbonBlackCloud:
 
             data = r.json()
 
-            self.log.debug('[%s] {}'.format(json.dumps(data, indent=4)), self.class_name)
-            return data
+            if r.status_code == 200:
+                self.log.debug('[%s] {}'.format(json.dumps(data, indent=4)), self.class_name)
+                return data
+
+            elif r.status_code == 403:
+                self.log.error('[%s] Unable to get status of session. 403 Authentication Error. Make sure API with ID {0} has the `org.liveresponse.session` DELETE permission.'.format(self.cust_api_id))
+
+            raise Exception('{0}: {1}'.format(r.status_code, r.text))
+
 
         except Exception as err:
             self.log.exception(err)

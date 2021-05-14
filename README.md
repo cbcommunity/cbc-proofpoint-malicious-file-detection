@@ -50,35 +50,35 @@ Edit the `config.conf` file and update with your configurations
 All of the configurable settings for the integration can be found in [`config.conf`](https://github.com/cbcommunity/cbc-proofpoint-malicous-file-detection/blob/main/app/config.conf).
 
 ### Carbon Black Configuration
-You will need to create 1 API Access Level and 3 API keys
+You will need to create 1 API Access Level and 2 API keys
 
 #### Custom Access Level Permissions
 
-|    **Category**   | **Permission Name** | **.Notation Name** |        **Create**       |         **Read**        |        **Update**       | **Delete** |       **Execute**       |
-|:-----------------:|:-------------------:|:------------------:|:-----------------------:|:-----------------------:|:-----------------------:|:----------:|:-----------------------:|
-| Custom Detections | Feeds               | org.feeds          | :ballot_box_with_check: | :ballot_box_with_check: |                         |            |                         |
-| Device            | Quarantine          | device.quarantine  |                         |                         |                         |            | :ballot_box_with_check: |
-| Device            | General Information | device             |                         | :ballot_box_with_check: |                         |            |                         |
-| Device            | Policy Assignment   | device.policy      |                         |                         | :ballot_box_with_check: |            |                         |
-| Search            | Events              | org.search.events  | :ballot_box_with_check: | :ballot_box_with_check: |                         |            |                         |
+|    **Category**   | **Permission Name**   | **.Notation Name**       |        **Create**       |         **Read**        |        **Update**       | **Delete**              |       **Execute**       |
+|:-----------------:|:---------------------:|:------------------------:|:-----------------------:|:-----------------------:|:-----------------------:|:-----------------------:|:-----------------------:|
+| Custom Detections | Feeds                 | org.feeds                | :ballot_box_with_check: | :ballot_box_with_check: |                         |                         |                         |
+| Device            | Quarantine            | device.quarantine        |                         |                         |                         |                         | :ballot_box_with_check: |
+| Device            | General Information   | device                   |                         | :ballot_box_with_check: |                         |                         |                         |
+| Device            | Policy Assignment     | device.policy            |                         |                         | :ballot_box_with_check: |                         |                         |
+| Live Response     | Live Response Session | org.liveresponse.session | :ballot_box_with_check: | :ballot_box_with_check: |                         | :ballot_box_with_check: |                         |
+| Live Response     | Live Response File    | org.liveresponse.file    |                         |                         |                         | :ballot_box_with_check: |                         |
+| Live Response     | Live Response Process | org.liveresponse.process |                         | :ballot_box_with_check: |                         | :ballot_box_with_check: |                         |
+| Search            | Events                | org.search.events        | :ballot_box_with_check: | :ballot_box_with_check: |                         |                         |                         |
 
 #### Access Levels (API key type)
 1. Custom [select your Custom Access Level]
 2. API
-3. Live Response (optional, used in [action.py](https://github.com/cbcommunity/cbc-proofpoint-malicous-file-detection/blob/main/app/action.py))
 
 The Organization Key can be found in the upper-left of the **Settings** > **API Keys** page.
 
-| CarbonBlack         | Configure Carbon Black Cloud       |
-|:--------------------|:-----------------------------------|
-| `url`               | URL of CBC instance                |
-| `org_key`           | Org Key                            |
-| `api_id`            | API ID                             |
-| `api_key`           | API Secret Secret Key              |
-| `custom_api_id`     | Custom API ID                      |
-| `custom_api_key`    | Custom API Secret Key              |
-| `lr_api_id`         | LiveResponse API ID                |
-| `lr_api_key`        | LiveResponse API Secret Key        |
+| CarbonBlack         | Configure Carbon Black Cloud                                   |
+|:--------------------|:---------------------------------------------------------------|
+| `url`               | URL of CBC instance                                            |
+| `org_key`           | Org Key                                                        |
+| `api_id`            | API ID                                                         |
+| `api_key`           | API Secret Secret Key                                          |
+| `custom_api_id`     | Custom API ID                                                  |
+| `custom_api_key`    | Custom API Secret Key                                          |
 | `window`            | Window of time to search for SHA256 processes. Maximum 2 weeks |
 
 ----
@@ -89,13 +89,15 @@ The Service Credentials section allows you to define sets of credentials which a
 
 To create a service principal, navigate to the Connected Applications tab, click the Create New Credential button. You will then be prompted to define a friendly name, which should be descriptive of the purpose of the credential. After hitting Generate, a lightbox will be displayed with the service principal (username) and secret (password). It is important that you copy these credentials; they will not be redisplayed and are not retrievable after the lightbox has been dismissed.
 
-| **Proofpoint**  | **Configure Proofpoint TAP**   |
-|:----------------|:-------------------------------|
-| `url`           | URL for Proofpoint             |
-| `api_key`       | API Key                        |
-| `principal`     | Login Username                 |
-| `secret`        | Login Password                 |
-| `delta`         | Duration of time to search for delivered messages. Max 1 hour |
+| **Proofpoint**      | **Configure Proofpoint TAP**                                                |
+|:--------------------|:----------------------------------------------------------------------------|
+| `url`               | URL for Proofpoint                                                          |
+| `api_key`           | API Key                                                                     |
+| `principal`         | Login Username                                                              |
+| `secret`            | Login Password                                                              |
+| `include_delivered` | Search for the hashes of attachments that Proofpoint delivered to the inbox |
+| `include_blocked`   | Search for the hashes of attachments that Proofpoint blocked                |
+| `delta`             | Duration of time to search for delivered messages. Max 1 hour               |
 
 ----
 
@@ -124,14 +126,14 @@ Python 3.x ships by default with sqlite. If for some reason you don't have sqlit
 
 When a process with the a malicious hash is detected, actions are triggered. By default all actions are disabled. Uncomment and populate with a value to enable.
 
-| **actions**         | **Configure Actions**              |
-|:--------------------|:-----------------------------------|
-| `watchlist`         | Name of watchlist to populate      |
+| **actions**         | **Configure Actions**                                       |
+|:--------------------|:------------------------------------------------------------|
+| `watchlist`         | Name of watchlist to populate                               |
 | `webhook`           | URL to `POST` a JSON object of the event and sandbox report |
-| `script`            | A script to execute                |
-| `isolate`           | Isolate the endpoint?              |
-| `policy`            | Policy to move offending devices   |
-| `nsx_tag`           | Add a NSX tag to the device        |
+| `script`            | A script to execute                                         |
+| `isolate`           | Isolate the endpoint?                                       |
+| `policy`            | Policy to move offending devices                            |
+| `nsx_tag`           | Add a NSX tag to the device                                 |
 
 ## Running the Script
 

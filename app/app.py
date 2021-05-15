@@ -215,6 +215,12 @@ def take_action(email, sha256, cb_processes):
 
             cb.update_policy(device_id, policy)
 
+        # Add the hash to a BLACK_LIST reputation override
+        if 'denylist' in actions and str2bool(actions['denylist']):
+            exists = cb.search_reputations(sha256)
+            if len(exists) == 0:
+                cb.configure_reputation(sha256, process['process_name'])
+
         # Add an NSX tag to the device
         if 'nsx_tag' in actions and actions['nsx_tag'] is not None:
             if nsx is None:

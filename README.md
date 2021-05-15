@@ -56,6 +56,7 @@ You will need to create 1 API Access Level and 2 API keys
 
 |    **Category**   | **Permission Name**   | **.Notation Name**       |        **Create**       |         **Read**        |        **Update**       | **Delete**              |       **Execute**       |
 |:-----------------:|:---------------------:|:------------------------:|:-----------------------:|:-----------------------:|:-----------------------:|:-----------------------:|:-----------------------:|
+| Applications      | Reputation            | org.reputations          | :ballot_box_with_check: | :ballot_box_with_check: | :ballot_box_with_check: |                         |                         |
 | Custom Detections | Feeds                 | org.feeds                | :ballot_box_with_check: | :ballot_box_with_check: |                         |                         |                         |
 | Device            | Quarantine            | device.quarantine        |                         |                         |                         |                         | :ballot_box_with_check: |
 | Device            | General Information   | device                   |                         | :ballot_box_with_check: |                         |                         |                         |
@@ -132,6 +133,7 @@ When a process with the a malicious hash is detected, actions are triggered. By 
 | `script`            | A script to execute                                         |
 | `isolate`           | Isolate the endpoint?                                       |
 | `policy`            | Policy to move offending devices                            |
+| `denylist`          | Add the hash to a repuation override (ban the hash)         |
 | `nsx_tag`           | Add a NSX tag to the device                                 |
 
 ## Running the Script

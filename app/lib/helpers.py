@@ -330,24 +330,85 @@ class CarbonBlackCloud:
 
         self.log.info('[%s] Searching for reputation override with SHA256 {0}'.format(sha256), self.class_name)
 
-        url = '{0}/appservices/v6/orgs/{1}/reputations/overrides/_search'.format(self.url, self.org_key)
-        headers = self.headers
-        headers['X-Auth-Token'] = '{0}/{1}'.format(self.cust_api_key, self.cust_api_id)
-        body = {
-            'query': '{0}'.format(sha256),
-            'sort_field': 'create_time',
-            'sort_order': 'asc'
-        }
-        r = requests.get(url, headers=headers, body=json.loads(body))
+        try:
+            url = '{0}/appservices/v6/orgs/{1}/reputations/overrides/_search'.format(self.url, self.org_key)
+            headers = self.headers
+            headers['X-Auth-Token'] = '{0}/{1}'.format(self.cust_api_key, self.cust_api_id)
+            body = {
+                'query': '{0}'.format(sha256),
+                'sort_field': 'create_time',
+                'sort_order': 'asc'
+            }
+            r = requests.post(url, headers=headers, json=body)
 
-        if r.status_code == 200:
-            data = r.json()
-            reputations = data['results']
+            if r.status_code == 200:
+                data = r.json()
+                reputations = data['results']
 
-            self.log.info('[%s] Found {0} reputation overrides for {1}'.format(len(reputations), sha256), self.class_name)                    
+                self.log.info('[%s] Found {0} reputation overrides for {1}'.format(len(reputations), sha256), self.class_name)
 
-    def configure_reputation(self):
-        pass
+                return reputations
+
+            elif r.status_code == 403:
+                self.log.error('[%s] Unable to search repuations. 403 Authentication error. Make sure the API with ID {0} has org.reputations READ permission.'.format(self.cust_api_id), self.class_name)
+
+            else:
+                self.log.error('[%s] Unable to search reputations. {0}'.format(r.text), self.class_name)
+
+            raise Exception('{0}: {1}'.format(r.status_code, r.text))
+
+        except Exception as err:
+            self.log.exception(err)
+
+
+    def configure_reputation(self, sha256, filename):
+        '''
+            In CBC Endpoint Standard we can configure a reputation override (ban a hash).
+            This method enables adding a SHA256 to the reputation override.
+
+            Inputs
+                sha256 (str):   The has to search for
+            
+            Outputs
+                An object of the results
+            
+            Raises
+                TypeError when sha256 is not a string
+                Something when the length is not 64 characters
+        '''
+
+        self.log.info('[%s] Searching for reputation override with SHA256 {0}'.format(sha256), self.class_name)
+
+        try:
+            url = '{0}/appservices/v6/orgs/{1}/reputations/overrides'.format(self.url, self.org_key)
+            headers = self.headers
+            headers['X-Auth-Token'] = '{0}/{1}'.format(self.cust_api_key, self.cust_api_id)
+            body = {
+                'description': 'This file was found to be malicous by Proofpoint TAP',
+                'override_list': 'BLACK_LIST',
+                'override_type': 'SHA256',
+                'sha256_hash': sha256,
+                'filename': filename
+            }
+            r = requests.post(url, headers=headers, json=body)
+
+            if r.status_code == 200:
+                data = r.json()
+                
+                self.log.info('[%s] Added {0} to BLACKLIST reputation override'.format(sha256), self.class_name)                    
+
+                return data
+
+            elif r.status_code == 403:
+                self.log.error('[%s] Unable to add repuation. 403 Authentication error. Make sure the API with ID {0} has org.reputations CREATE permission.'.format(self.cust_api_id), self.class_name)
+
+            else:
+                self.log.error('[%s] Unable to search reputations. {0}'.format(r.text), self.class_name)
+
+            raise Exception('{0}: {1}'.format(r.status_code, r.text))
+
+        except Exception as err:
+            self.log.exception(err)
 
     #
     # CBC Enterprise EDR

@@ -44,8 +44,6 @@ class CarbonBlackCloud:
             self.api_key = config['CarbonBlack']['api_key']
             self.cust_api_id = config['CarbonBlack']['custom_api_id']
             self.cust_api_key = config['CarbonBlack']['custom_api_key']
-            self.lr_api_id = config['CarbonBlack']['lr_api_id']
-            self.lr_api_key = config['CarbonBlack']['lr_api_key']
             self.headers = {
                 'Content-Type': 'application/json',
                 'Cache-Control': 'no-cache',
@@ -109,8 +107,8 @@ class CarbonBlackCloud:
                     tries = 0
                     while process_results['contacted'] != process_results['completed']:
                         if tries > 5:
-                            self.log.error('[%s] !!! Tried {0} times to get {1}. Giving up.'.format(tries, job_id), self.class_name)
-                            raise RuntimeError('[%s] !!! Tried {0} times to get {1}. Giving up.'.format(tries, job_id), self.class_name)
+                            self.log.error('[%s] Tried {0} times to get {1}. Giving up.'.format(tries, job_id), self.class_name)
+                            raise RuntimeError('[%s] Tried {0} times to get {1}. Giving up.'.format(tries, job_id), self.class_name)
 
                         tries += 1
 
@@ -776,13 +774,15 @@ class CarbonBlackCloud:
                     while data['status'] == 'PENDING':
                         sleep(15)
                         data = self.get_session()
+                        if data is False:
+                            return data
                 
                 self.supported_commands = data['supported_commands']
 
                 return data
 
             elif r.status_code == 403:
-                self.log.error('[%s] Unable to create session. 403 Authentication Error. Make sure API with ID {0} has the `org.liveresponse.session` CREATE permission.')
+                self.log.error('[%s] Unable to create session. 403 Authentication Error. Make sure API with ID {0} has the `org.liveresponse.session` CREATE permission.'.format(self.cust_api_id), self.class_name)
 
             else:
                 self.log.error('[%s] Unable to create session: {0}'.format(r.text), self.class_name)
@@ -823,19 +823,23 @@ class CarbonBlackCloud:
             if r.status_code == 200:
                 data = r.json()
                 self.log.debug('[%s] {}'.format(json.dumps(data, indent=4)), self.class_name)
-                self.supported_commands = data['supported_commands']
+                if 'supported_commands' in data:
+                    self.supported_commands = data['supported_commands']
 
                 return data
 
             elif r.status_code == 403:
                 self.log.error('[%s] Unable to get status of session. 403 Authentication Error. Make sure API with ID {0} has the `org.liveresponse.session` READ permission.'.format(self.cust_api_id))
 
+                return False
+
             elif r.status_code == 404:
                 # If a session request times out, this message is given:
                 #   404: {"reason":"Session not found", "success":false, "status":"NOT_FOUND"}
                 data = r.json()
-                if data['reason'] == 'Session not found':
-                    self.log.error('[%s] Session timed out.')
+                self.log.debug('[%s] {0}'.format(json.dumps(data, indent=4)), self.class_name)
+                if data['message'] == 'Session not found':
+                    self.log.error('[%s] Session timed out.', self.class_name)
                 
                 return False
 

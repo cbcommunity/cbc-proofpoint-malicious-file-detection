@@ -131,8 +131,7 @@ def take_action(email, sha256, cb_processes):
                                       threat['classification'],
                                       threat['threatType'], sha256)
 
-        # !!! need to populate threat feed description
-        description = 'A description can go here.'
+        description = 'This IOC was identified by Proofpoint as malicious.'
 
         # Proofpoint's scoring is 0-100, CBC EEDR is 1-10
         if email['malwareScore'] == 0:
@@ -369,10 +368,14 @@ def main():
                     hash_tracker += [sha256]
                     cb_processes = cb.get_processes(sha256, config['CarbonBlack']['window'])
 
-                    log.info('[APP.PY] Found {0} processes with malicous hash of {1}'.format(len(cb_processes['results']), sha256))
+                    if cb_processes is None:
+                        log.info('[APP.PY] Unable to find any processes with hash {0}'.format(sha256))
+                    
+                    else:
+                        log.info('[APP.PY] Found {0} processes with malicous hash of {1}'.format(len(cb_processes['results']), sha256))
 
-                    # Take action on the processes
-                    take_action(email, sha256, cb_processes['results'])
+                        # Take action on the processes
+                        take_action(email, sha256, cb_processes['results'])
 
                 else:
                     log.info('[APP.PY] Hash was already processed')

@@ -922,7 +922,7 @@ class CarbonBlackCloud:
 
                     if wait:
                         sleep(1)
-                        while data['status'] == 'pending':
+                        while data['status'] == 'PENDING':
                             sleep(5)
                             data = self.command_status(data['id'])
 

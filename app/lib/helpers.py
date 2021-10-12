@@ -382,7 +382,7 @@ class CarbonBlackCloud:
             headers = self.headers
             headers['X-Auth-Token'] = '{0}/{1}'.format(self.cust_api_key, self.cust_api_id)
             body = {
-                'description': 'This file was found to be malicous by Proofpoint TAP',
+                'description': 'This file was found to be malicious by Proofpoint TAP',
                 'override_list': 'BLACK_LIST',
                 'override_type': 'SHA256',
                 'sha256_hash': sha256,

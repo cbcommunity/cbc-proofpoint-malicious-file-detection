@@ -26,7 +26,7 @@ Action options consist of:
     - Proofpoint TAP
 
 ## License
-Use of the Carbon Black API is governed by the license found in the [LICENSE.md](https://github.com/cbcommunity/cbc-proofpoint-malicous-file-detection/blob/main/LICENSE.md) file.
+Use of the Carbon Black API is governed by the license found in the [LICENSE.md](https://github.com/cbcommunity/cbc-proofpoint-malicious-file-detection/blob/main/LICENSE.md) file.
 
 ## Support
 This integration is an open sourced project. Please submit a Pull Request for any changes.
@@ -37,7 +37,7 @@ This integration is an open sourced project. Please submit a Pull Request for an
 
 Clone the repository into a local folder.
 
-    git clone https://github.com/cbcommunity/cbc-proofpoint-malicous-file-detection.git
+    git clone https://github.com/cbcommunity/cbc-proofpoint-malicious-file-detection.git
 
 Install the requirements
 
@@ -47,7 +47,7 @@ Edit the `config.conf` file and update with your configurations
 
 ## Configuration
 
-All of the configurable settings for the integration can be found in [`config.conf`](https://github.com/cbcommunity/cbc-proofpoint-malicous-file-detection/blob/main/app/config.conf).
+All of the configurable settings for the integration can be found in [`config.conf`](https://github.com/cbcommunity/cbc-proofpoint-malicious-file-detection/blob/main/app/config.conf).
 
 ### Carbon Black Configuration
 You will need to create 1 API Access Level and 2 API keys
@@ -165,7 +165,7 @@ A Dockerfile is included. First build the image using the following command from
 
     docker build -t cbc-proofpoint .
 
-Make sure your [app/config.conf](https://github.com/cbcommunity/cbc-proofpoint-malicous-file-detection/blob/main/app/config.conf) file is populated with the correct values.
+Make sure your [app/config.conf](https://github.com/cbcommunity/cbc-proofpoint-malicious-file-detection/blob/main/app/config.conf) file is populated with the correct values.
 
 Run the script with the following command:
 

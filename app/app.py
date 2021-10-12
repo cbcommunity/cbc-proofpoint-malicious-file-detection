@@ -101,7 +101,7 @@ def take_action(email, sha256, cb_processes):
 
         Inputs:
             email: An object from Proofpoint with details about the email (and attachments)
-            sha256: A string of the SHA256 of the malicous attachment
+            sha256: A string of the SHA256 of the malicious attachment
             cb_processes: An array of objects containing processes related to the hash
 
         Outputs:
@@ -357,12 +357,12 @@ def main():
     # Prevent processing of the same hash
     hash_tracker = []
 
-    # Find malicous attachments in the emails and process them
+    # Find malicious attachments in the emails and process them
     for email in bad_emails:
         for part in email['messageParts']:
             if part['disposition'] == 'attached':
                 sha256 = part['sha256']
-                log.info('[APP.PY] Found email with malicous hash of {0}'.format(sha256))
+                log.info('[APP.PY] Found email with malicious hash of {0}'.format(sha256))
 
                 if sha256 not in hash_tracker:
                     hash_tracker += [sha256]
@@ -372,7 +372,7 @@ def main():
                         log.info('[APP.PY] Unable to find any processes with hash {0}'.format(sha256))
                     
                     else:
-                        log.info('[APP.PY] Found {0} processes with malicous hash of {1}'.format(len(cb_processes['results']), sha256))
+                        log.info('[APP.PY] Found {0} processes with malicious hash of {1}'.format(len(cb_processes['results']), sha256))
 
                         # Take action on the processes
                         take_action(email, sha256, cb_processes['results'])
